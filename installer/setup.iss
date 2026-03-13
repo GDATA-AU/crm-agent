@@ -40,6 +40,7 @@ WizardStyle=modern
 CloseApplications=yes
 RestartIfNeededByRun=no
 UninstallDisplayName={#AppName}
+UninstallDisplayIcon={app}\tray\{#TrayExeName}
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -78,6 +79,25 @@ begin
   Sleep(2000);
   Exec('sc.exe', 'delete {#ServiceName}', '', SW_HIDE, ewWaitUntilTerminated, 0);
   Sleep(1000);
+end;
+
+// Kill the tray app process so its files can be deleted during uninstall.
+procedure KillTrayApp();
+var
+  ResultCode: Integer;
+begin
+  Exec('taskkill.exe', '/F /IM {#TrayExeName}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Sleep(1000);
+end;
+
+// Remove the ProgramData config directory (contains API key — must not be left behind).
+procedure DeleteProgramDataDir();
+var
+  Dir: String;
+begin
+  Dir := ExpandConstant('{commonappdata}\LGA CRM Agent');
+  if DirExists(Dir) then
+    DelTree(Dir, True, True, True);
 end;
 
 // Grant the logged-in users group modify access to the ProgramData config directory
@@ -142,6 +162,13 @@ procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 begin
   if CurUninstallStep = usUninstall then
   begin
+    KillTrayApp();
     StopAndDeleteService();
+  end;
+
+  if CurUninstallStep = usPostUninstall then
+  begin
+    // Delete credentials stored in ProgramData — not tracked by Inno Setup's file list
+    DeleteProgramDataDir();
   end;
 end;
