@@ -4,14 +4,9 @@ A lightweight extraction agent that runs inside council networks, polls the LGA 
 
 ## Overview
 
-`crm-agent` replaces Azure Data Factory's Self-Hosted Integration Runtime in the council ERP integration pipeline.
+`crm-agent` is the extraction component in the council ERP integration pipeline.
 
-**Previous pipeline:**
-```
-ADF (extracts from on-prem DB) → Azure Blob Storage → Portal (diffs, upserts to Postgres)
-```
-
-**New pipeline:**
+**Pipeline:**
 ```
 crm-agent (extracts from on-prem DB or external API) → Azure Blob Storage → Portal (diffs, upserts to Postgres)
 ```
