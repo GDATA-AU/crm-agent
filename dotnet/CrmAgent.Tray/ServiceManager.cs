@@ -12,7 +12,7 @@ namespace CrmAgent.Tray;
 /// </summary>
 public static class ServiceManager
 {
-    public const string ServiceName = "crm-agent";
+    public const string ServiceName = "gdata-agent";
 
     public static ServiceControllerStatus GetStatus()
     {

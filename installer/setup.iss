@@ -12,7 +12,7 @@
 #define AppName    "LGA CRM Agent"
 #define AppVersion "1.0.0"
 #define AppPublisher "GDATA-AU"
-#define ServiceName "crm-agent"
+#define ServiceName "gdata-agent"
 #define ExeName "CrmAgent.exe"
 ; Path to the published outputs, relative to this script
 #define PublishDir     ".\..\publish"

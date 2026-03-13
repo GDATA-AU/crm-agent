@@ -32,7 +32,7 @@ try
     // Windows Service support — no-op on Linux, enables SCM integration on Windows.
     builder.Services.AddWindowsService(options =>
     {
-        options.ServiceName = "crm-agent";
+        options.ServiceName = "gdata-agent";
     });
 
     // Configuration — bind from appsettings.json "Agent" section, then overlay
