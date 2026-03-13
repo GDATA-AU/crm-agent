@@ -1,6 +1,6 @@
 # crm-agent
 
-A lightweight extraction agent that runs inside council networks, polls the LGA Customer Portal for jobs, executes them locally, and writes results to Azure Blob Storage.
+A lightweight extraction agent that runs as a Windows service inside council networks, polls the LGA Customer Portal for jobs, executes them locally, and writes results to Azure Blob Storage.
 
 ## Overview
 
@@ -14,16 +14,26 @@ crm-agent (extracts from on-prem DB or external API) → Azure Blob Storage → 
 The agent is **intentionally dumb** — it has no knowledge of the citizen schema, deduplication logic, or business rules. It:
 
 1. Polls the portal's REST API for a pending job
-2. Executes the job (SQL query or REST API extraction) using streaming to keep memory low
+2. Executes the job (SQL query or REST API extraction) using streaming
 3. Computes a SHA-256 `_rowHash` for each row (for change detection)
 4. Writes gzip-compressed NDJSON to Azure Blob Storage
 5. Reports completion (or failure) back to the portal
 
 All business logic remains in the portal. The agent only interprets structured configuration objects for known job types — it does **not** execute arbitrary code from job configs.
 
+## Tech stack
+
+- **.NET 10** Worker Service
+- **Microsoft.Data.SqlClient** — SQL Server
+- **Npgsql** — PostgreSQL
+- **MySqlConnector** — MySQL / MariaDB
+- **Azure.Storage.Blobs** — blob upload
+- **Serilog** — structured JSON logging
+- **Microsoft.Extensions.Hosting.WindowsServices** — native Windows service support
+
 ## Prerequisites
 
-- **Node.js 20+** (LTS recommended) — [nodejs.org](https://nodejs.org)
+- **Windows Server 2016+** (or Windows 10+ for development)
 - Network access **outbound** to:
   - The portal URL (HTTPS, typically port 443)
   - Azure Blob Storage endpoint (HTTPS, port 443)
@@ -34,76 +44,70 @@ No inbound firewall rules are required. All communication is initiated by the ag
 
 ## Installation
 
-### 1. Clone and install dependencies
+### 1. Download or build the agent
+
+Option A — build from source:
 
 ```bash
 git clone https://github.com/GDATA-AU/crm-agent.git
-cd crm-agent
-npm install
+cd crm-agent/dotnet/CrmAgent
+dotnet publish -c Release -r win-x64 --self-contained -o publish
 ```
 
-### 2. Configure environment variables
+Option B — download the pre-built release from GitHub Releases.
 
-```bash
-cp .env.example .env
-# Edit .env with your portal URL, API key, and storage connection string
+The published output is a single `CrmAgent.exe` with no external dependencies.
+
+### 2. Configure
+
+Edit `appsettings.json` in the publish folder:
+
+```json
+{
+  "Agent": {
+    "PortalUrl": "https://council.lga-portal.com.au",
+    "AgentApiKey": "your-api-key",
+    "AzureStorageConnectionString": "DefaultEndpointsProtocol=https;AccountName=..."
+  }
+}
 ```
 
-See [Configuration](#configuration) for all available variables.
+Alternatively, set environment variables (`PORTAL_URL`, `AGENT_API_KEY`, `AZURE_STORAGE_CONNECTION_STRING`). Environment variables take precedence over `appsettings.json`.
 
-### 3. Build
+See [Configuration](#configuration) for all available settings.
 
-```bash
-npm run build
-```
-
-### 4. Install as a service
-
-#### Linux (systemd)
-
-```bash
-sudo ./install-linux.sh
-```
-
-To uninstall:
-```bash
-sudo ./install-linux.sh --uninstall
-```
-
-#### Windows (as Administrator)
+### 3. Install as a Windows service (run as Administrator)
 
 ```powershell
-npx tsx install-windows.ts
+install-service.bat
 ```
 
 To uninstall:
 ```powershell
-npx tsx install-windows.ts --uninstall
+install-service.bat --uninstall
 ```
 
-### 5. Verify the agent is running
+### 4. Verify the agent is running
 
-```bash
-# Linux
-journalctl -u crm-agent -f
-
-# Windows — check Event Viewer → Windows Logs → Application
+```powershell
+sc query crm-agent
 ```
 
-You should see structured JSON log lines from pino. The agent will log when it polls the portal and when it executes jobs.
+Check **Event Viewer → Windows Logs → Application** for structured JSON log output. The agent logs every poll cycle and job execution.
 
 ## Configuration
 
-All configuration is via environment variables. Copy `.env.example` to `.env` and fill in the values.
+Configuration is via `appsettings.json` or environment variables. Environment variables take precedence.
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `PORTAL_URL` | ✅ | — | Base URL of the LGA Customer Portal, e.g. `https://council.lga-portal.com.au` |
-| `AGENT_API_KEY` | ✅ | — | Long-lived API key provisioned when the agent is set up |
-| `AZURE_STORAGE_CONNECTION_STRING` | ✅ | — | Azure Blob Storage connection string |
-| `POLL_INTERVAL_MS` | | `30000` | How often to poll the portal for jobs (milliseconds) |
-| `HEARTBEAT_INTERVAL_MS` | | `30000` | How often to send a heartbeat during a job (milliseconds) |
-| `LOG_LEVEL` | | `info` | pino log level: `trace`, `debug`, `info`, `warn`, `error` |
+| Setting | Env var | Required | Default | Description |
+|---|---|---|---|---|
+| `Agent:PortalUrl` | `PORTAL_URL` | ✅ | — | Base URL of the LGA Customer Portal |
+| `Agent:AgentApiKey` | `AGENT_API_KEY` | ✅ | — | Long-lived API key provisioned when the agent is set up |
+| `Agent:AzureStorageConnectionString` | `AZURE_STORAGE_CONNECTION_STRING` | ✅ | — | Azure Blob Storage connection string |
+| `Agent:PollIntervalMs` | `POLL_INTERVAL_MS` | | `30000` | How often to poll the portal for jobs (ms) |
+| `Agent:HeartbeatIntervalMs` | `HEARTBEAT_INTERVAL_MS` | | `30000` | How often to send a heartbeat during a job (ms) |
+
+Serilog log levels can be configured in the `Serilog` section of `appsettings.json`.
 
 ### Local connection strings
 
@@ -111,7 +115,7 @@ For production use, connection strings should be stored **locally on the agent h
 
 Set environment variables using the naming convention `CONN_<NAME>` (upper-cased, hyphens replaced with underscores):
 
-```env
+```
 CONN_PATHWAY_DB=Server=192.168.1.50;Database=Pathway;User Id=readonly;Password=xxx;Encrypt=false;
 CONN_MERIT_DB=Server=192.168.1.51;Database=Merit;User Id=readonly;Password=xxx;Encrypt=false;
 ```
@@ -162,6 +166,22 @@ CREATE USER 'crm_agent_readonly'@'%' IDENTIFIED BY 'StrongPassword123!';
 GRANT SELECT ON merit.* TO 'crm_agent_readonly'@'%';
 FLUSH PRIVILEGES;
 ```
+
+## Development
+
+The source is in `dotnet/CrmAgent/`. To work on the agent locally:
+
+```bash
+cd dotnet/CrmAgent
+dotnet run
+```
+
+| Task | Command |
+|------|---------|
+| Build | `dotnet build` |
+| Run (dev) | `dotnet run` |
+| Test | `cd ../CrmAgent.Tests && dotnet test` |
+| Publish (self-contained) | `dotnet publish -c Release -r win-x64 --self-contained -o publish` |
 
 ## Verifying the agent is working
 
