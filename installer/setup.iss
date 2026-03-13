@@ -57,6 +57,13 @@ Source: "{#TrayPublishDir}\*"; DestDir: "{app}\tray"; Flags: ignoreversion recur
 [Icons]
 Name: "{group}\Uninstall {#AppName}"; Filename: "{uninstallexe}"
 
+[Registry]
+; Auto-start the tray app for all users on login (HKLM so it works regardless of which account logs in)
+Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Run"; \
+  ValueType: string; ValueName: "LGACrmAgent"; \
+  ValueData: """{app}\tray\{#TrayExeName}"""; \
+  Flags: uninsdeletevalue
+
 [Run]
 ; Launch the tray app after installation. On first run it detects no config and opens the setup form.
 Filename: "{app}\tray\{#TrayExeName}"; Description: "Launch LGA CRM Agent"; Flags: nowait postinstall skipifsilent
