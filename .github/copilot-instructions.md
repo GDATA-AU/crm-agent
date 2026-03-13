@@ -42,10 +42,6 @@ dotnet/
     BlobStorageServiceTests.cs
 ```
 
-## Legacy Node.js code
-
-The `src/` directory at the repo root contains the original Node.js/TypeScript prototype. It is **not the active implementation** — the production agent is in `dotnet/CrmAgent/`. The Node code is retained for reference only.
-
 ## Conventions
 
 - **Files:** PascalCase matching class name (`RestApiHandler.cs`).

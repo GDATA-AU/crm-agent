@@ -186,46 +186,35 @@ dotnet run
 ```bash
 cd /path/to/crm-agent
 git pull origin main
-npm install
-npm run build
+
+# Build and test
+dotnet build
+dotnet test dotnet/CrmAgent.Tests
+
+# Publish and restart service
+dotnet publish dotnet/CrmAgent -c Release -r win-x64 --self-contained -o publish
+
 # Linux:
 sudo systemctl restart crm-agent
+
 # Windows (as Administrator):
-npx tsx install-windows.ts --uninstall
-npx tsx install-windows.ts
-```
-
-## Development
-
-```bash
-# Run in development mode (no build step required)
-npm run dev
-
-# Run tests
-npm test
-
-# Type-check without building
-npm run typecheck
+publish\install-service.bat --uninstall
+publish\install-service.bat
 ```
 
 ## Architecture
 
 ```
-crm-agent/
-├── src/
-│   ├── index.ts          Entry point — starts the main loop
-│   ├── config.ts         Environment variable loading and validation
-│   ├── loop.ts           Main poll loop (poll → execute → report)
-│   ├── portal.ts         HTTP client for portal API (poll, report status)
-│   ├── blob.ts           Azure Blob upload helpers
-│   ├── hash.ts           SHA-256 row hash computation
-│   ├── ndjson.ts         NDJSON.gz streaming writer
-│   ├── logger.ts         Structured JSON logging (pino)
-│   ├── handlers/
-│   │   ├── index.ts      Handler registry
-│   │   ├── sql.ts        SQL extraction handler (mssql, postgres, mysql)
-│   │   └── rest-api.ts   REST API extraction handler
-│   └── types.ts          Shared TypeScript interfaces
+dotnet/
+  CrmAgent/
+    Program.cs                  Entry point, DI wiring, Windows Service support
+    AgentConfig.cs              Config from appsettings.json + env vars
+    AgentWorker.cs              BackgroundService main poll loop
+    Models/Job.cs               Shared job types and status models
+    Services/                   Portal/blob/hash/NDJSON services
+    Handlers/                   SQL and REST extraction handlers
+  CrmAgent.Tests/               xUnit tests
+  CrmAgent.Tray/                Windows tray app for setup and status
 ```
 
 ## Blob output format
