@@ -14,8 +14,10 @@
 #define AppPublisher "GDATA-AU"
 #define ServiceName "crm-agent"
 #define ExeName "CrmAgent.exe"
-; Path to the published output, relative to this script
-#define PublishDir "..\publish"
+; Path to the published outputs, relative to this script
+#define PublishDir     ".\..\publish"
+#define TrayPublishDir ".\..\publish-tray"
+#define TrayExeName    "CrmAgentTray.exe"
 
 [Setup]
 AppId={{A3F6B2D1-4C8E-4F2A-9D3B-7E1C5A0F8B2D}
@@ -43,140 +45,26 @@ UninstallDisplayName={#AppName}
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [CustomMessages]
-english.ConfigPageCaption=Service Configuration
-english.ConfigPageDescription=Enter the connection details for this agent instance.
-english.LblPortalUrl=Portal URL:
-english.LblPortalUrlHint=e.g. https://portal.example.com
-english.LblApiKey=Agent API Key:
-english.LblAzureConn=Azure Storage Connection String:
-english.LblAzureConnHint=DefaultEndpointsProtocol=https;AccountName=...
+; (intentionally empty — connection details are collected by the tray app on first launch)
 
 [Files]
-; Copy everything from the publish folder
-Source: "{#PublishDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Worker Service
+Source: "{#PublishDir}\*";     DestDir: "{app}";       Flags: ignoreversion recursesubdirs createallsubdirs
+; Tray configuration app (runs as the logged-in user, manages config + service state)
+Source: "{#TrayPublishDir}\*"; DestDir: "{app}\tray"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-; No Start Menu shortcuts needed for a background service — just an uninstaller entry
 Name: "{group}\Uninstall {#AppName}"; Filename: "{uninstallexe}"
+
+[Run]
+; Launch the tray app after installation. On first run it detects no config and opens the setup form.
+Filename: "{app}\tray\{#TrayExeName}"; Description: "Launch LGA CRM Agent"; Flags: nowait postinstall skipifsilent
 
 [Code]
 
 //-----------------------------------------------------------------------
-// Custom wizard page variables
-//-----------------------------------------------------------------------
-var
-  ConfigPage: TInputQueryWizardPage;
-
-//-----------------------------------------------------------------------
-// CreateCustomPages — called by Inno Setup during wizard page creation
-//-----------------------------------------------------------------------
-procedure InitializeWizard();
-begin
-  ConfigPage := CreateInputQueryPage(
-    wpSelectDir,
-    ExpandConstant('{cm:ConfigPageCaption}'),
-    ExpandConstant('{cm:ConfigPageDescription}'),
-    '');
-
-  ConfigPage.Add(ExpandConstant('{cm:LblPortalUrl}'),     False);
-  ConfigPage.Add(ExpandConstant('{cm:LblApiKey}'),        True);   // password field
-  ConfigPage.Add(ExpandConstant('{cm:LblAzureConn}'),     True);   // password field
-
-  // Friendly placeholder hints (Inno Setup doesn't support watermarks, so
-  // pre-fill with example text that the user clears)
-  ConfigPage.Values[0] := 'https://portal.example.com';
-  ConfigPage.Values[1] := '';
-  ConfigPage.Values[2] := '';
-end;
-
-//-----------------------------------------------------------------------
-// Validate inputs before allowing Next
-//-----------------------------------------------------------------------
-function NextButtonClick(CurPageID: Integer): Boolean;
-begin
-  Result := True;
-  if CurPageID = ConfigPage.ID then
-  begin
-    if Trim(ConfigPage.Values[0]) = '' then
-    begin
-      MsgBox('Portal URL is required.', mbError, MB_OK);
-      Result := False;
-      Exit;
-    end;
-    if Trim(ConfigPage.Values[1]) = '' then
-    begin
-      MsgBox('Agent API Key is required.', mbError, MB_OK);
-      Result := False;
-      Exit;
-    end;
-    if Trim(ConfigPage.Values[2]) = '' then
-    begin
-      MsgBox('Azure Storage Connection String is required.', mbError, MB_OK);
-      Result := False;
-      Exit;
-    end;
-  end;
-end;
-
-//-----------------------------------------------------------------------
 // Helpers
 //-----------------------------------------------------------------------
-
-// Escape a string for inclusion inside a JSON string value.
-function JsonEscape(const S: String): String;
-var
-  I: Integer;
-  C: Char;
-  R: String;
-begin
-  R := '';
-  for I := 1 to Length(S) do
-  begin
-    C := S[I];
-    if C = '"'  then R := R + '\"'
-    else if C = '\' then R := R + '\\'
-    else R := R + C;
-  end;
-  Result := R;
-end;
-
-//-----------------------------------------------------------------------
-// WriteAppSettings — writes appsettings.json from wizard inputs
-//-----------------------------------------------------------------------
-procedure WriteAppSettings();
-var
-  PortalUrl, ApiKey, AzureConn: String;
-  Lines: TArrayOfString;
-  FilePath: String;
-begin
-  PortalUrl := JsonEscape(Trim(ConfigPage.Values[0]));
-  ApiKey    := JsonEscape(Trim(ConfigPage.Values[1]));
-  AzureConn := JsonEscape(Trim(ConfigPage.Values[2]));
-  FilePath  := ExpandConstant('{app}\appsettings.json');
-
-  SetArrayLength(Lines, 20);
-  Lines[0]  := '{';
-  Lines[1]  := '  "Serilog": {';
-  Lines[2]  := '    "MinimumLevel": {';
-  Lines[3]  := '      "Default": "Information",';
-  Lines[4]  := '      "Override": {';
-  Lines[5]  := '        "Microsoft": "Warning",';
-  Lines[6]  := '        "System": "Warning"';
-  Lines[7]  := '      }';
-  Lines[8]  := '    }';
-  Lines[9]  := '  },';
-  Lines[10] := '  "Agent": {';
-  Lines[11] := '    "PortalUrl": "' + PortalUrl + '",';
-  Lines[12] := '    "AgentApiKey": "' + ApiKey + '",';
-  Lines[13] := '    "AzureStorageConnectionString": "' + AzureConn + '",';
-  Lines[14] := '    "PollIntervalMs": 30000,';
-  Lines[15] := '    "HeartbeatIntervalMs": 30000';
-  Lines[16] := '  }';
-  Lines[17] := '}';
-  SetArrayLength(Lines, 18);
-
-  SaveStringsToFile(FilePath, Lines, False);
-end;
 
 //-----------------------------------------------------------------------
 // Service helpers
@@ -192,30 +80,44 @@ begin
   Sleep(1000);
 end;
 
-procedure InstallAndStartService();
+// Grant the logged-in users group modify access to the ProgramData config directory
+// so the tray app (running as user) can write appsettings.json.
+procedure CreateProgramDataDir();
+var
+  Dir: String;
+  ResultCode: Integer;
+begin
+  Dir := ExpandConstant('{commonappdata}\LGA CRM Agent');
+  if not DirExists(Dir) then
+    CreateDir(Dir);
+  // S-1-5-32-545 is the well-known SID for the built-in Users group (locale-independent)
+  Exec('icacls.exe', '"' + Dir + '" /grant *S-1-5-32-545:(OI)(CI)M /T /Q',
+    '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
+// Register the Windows service but do NOT start it.
+// The tray app starts the service after the user completes first-run setup.
+procedure RegisterService();
 var
   ExePath: String;
   ResultCode: Integer;
 begin
   ExePath := ExpandConstant('{app}\{#ExeName}');
 
-  // Register service
   Exec('sc.exe',
     'create {#ServiceName} binPath= "\"' + ExePath + '\"" start= auto DisplayName= "LGA CRM Agent"',
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
-  // Set description
   Exec('sc.exe',
     'description {#ServiceName} "Polls the council portal for extraction jobs and writes results to Azure Blob Storage."',
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
-  // Configure automatic restart on failure
   Exec('sc.exe',
     'failure {#ServiceName} reset= 86400 actions= restart/10000/restart/30000/restart/60000',
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
-  // Start
-  Exec('sc.exe', 'start {#ServiceName}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  // Service is intentionally left Stopped here.
+  // It will be started by the tray app once the user saves valid credentials.
 end;
 
 //-----------------------------------------------------------------------
@@ -231,8 +133,8 @@ begin
 
   if CurStep = ssPostInstall then
   begin
-    WriteAppSettings();
-    InstallAndStartService();
+    CreateProgramDataDir();
+    RegisterService();
   end;
 end;
 

@@ -14,6 +14,15 @@ try
 {
     var builder = Host.CreateApplicationBuilder(args);
 
+    // Layer credentials written by the tray app on first-run.
+    // This file wins over the built-in appsettings.json so IT staff never
+    // need to edit files inside Program Files.
+    var programDataConfig = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+        "LGA CRM Agent",
+        "appsettings.json");
+    builder.Configuration.AddJsonFile(programDataConfig, optional: true, reloadOnChange: false);
+
     // Serilog
     builder.Services.AddSerilog((services, cfg) => cfg
         .ReadFrom.Configuration(builder.Configuration)
