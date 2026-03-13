@@ -119,6 +119,11 @@ public sealed class ConnectForm : Form
                 _testStatus.Text = "✗ Invalid API key.";
                 _testStatus.ForeColor = Color.Red;
             }
+            else if (!response.IsSuccessStatusCode)
+            {
+                _testStatus.Text = $"✗ Server error ({(int)response.StatusCode}).";
+                _testStatus.ForeColor = Color.Red;
+            }
             else
             {
                 // 200 (job available), 204 (no jobs) — both confirm auth succeeded

@@ -11,17 +11,16 @@
 #   ./install-linux.sh --uninstall
 #
 # Prerequisites:
-#   - Node.js 20+ in PATH
-#   - npm install && npm run build already run in this directory
-#   - A .env file in this directory with required environment variables
-#     (see .env.example)
+#   - .NET 10 runtime in PATH, or use the self-contained publish output
+#   - dotnet publish dotnet/CrmAgent -c Release -r linux-x64 --self-contained -o publish
+#   - Environment variables set (see README)
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVICE_NAME="crm-agent"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
-NODE_BIN="$(which node)"
+PUBLISH_DIR="${SCRIPT_DIR}/publish"
 
 if [[ "${1:-}" == "--uninstall" ]]; then
   echo "Stopping and disabling ${SERVICE_NAME}..."
@@ -49,9 +48,9 @@ Wants=network-online.target
 Type=simple
 User=${SERVICE_USER}
 Group=${SERVICE_GROUP}
-WorkingDirectory=${SCRIPT_DIR}
-ExecStart=${NODE_BIN} --enable-source-maps dist/index.js
-EnvironmentFile=${SCRIPT_DIR}/.env
+WorkingDirectory=${PUBLISH_DIR}
+ExecStart=${PUBLISH_DIR}/CrmAgent
+EnvironmentFile=-${SCRIPT_DIR}/.env
 Restart=on-failure
 RestartSec=10
 StandardOutput=journal

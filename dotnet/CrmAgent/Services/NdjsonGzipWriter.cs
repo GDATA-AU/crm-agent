@@ -21,11 +21,11 @@ public sealed class NdjsonGzipWriter : IAsyncDisposable
     /// <summary>
     /// Write a single row as a JSON line.
     /// </summary>
-    public async Task WriteRowAsync(Dictionary<string, object?> row)
+    public async Task WriteRowAsync(Dictionary<string, object?> row, CancellationToken ct = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var line = JsonSerializer.Serialize(row) + "\n";
-        await _gzip.WriteAsync(Encoding.UTF8.GetBytes(line));
+        await _gzip.WriteAsync(Encoding.UTF8.GetBytes(line), ct);
     }
 
     /// <summary>

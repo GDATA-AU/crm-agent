@@ -38,7 +38,7 @@ public sealed partial class RestApiHandler : IJobHandler
         int processedRows;
         using var memoryStream = new MemoryStream();
 
-        await using (var writer = new NdjsonGzipWriter(memoryStream))
+        await using (var writer = new NdjsonGzipWriter(memoryStream, leaveOpen: true))
         {
             processedRows = config.Pagination switch
             {

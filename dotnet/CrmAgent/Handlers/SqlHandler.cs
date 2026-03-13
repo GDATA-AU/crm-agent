@@ -47,7 +47,7 @@ public sealed class SqlHandler : IJobHandler
         int processedRows;
         using var memoryStream = new MemoryStream();
 
-        await using (var writer = new NdjsonGzipWriter(memoryStream))
+        await using (var writer = new NdjsonGzipWriter(memoryStream, leaveOpen: true))
         {
             processedRows = config.Driver switch
             {

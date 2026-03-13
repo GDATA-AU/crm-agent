@@ -24,9 +24,9 @@ public sealed class BlobStorageService
     public async Task UploadStreamAsync(string blobName, Stream stream, CancellationToken ct = default)
     {
         var blobClient = _container.GetBlobClient(blobName);
-        await blobClient.UploadAsync(stream, new BlobHttpHeaders
+        await blobClient.UploadAsync(stream, new BlobUploadOptions
         {
-            ContentType = "application/gzip",
+            HttpHeaders = new BlobHttpHeaders { ContentType = "application/gzip" },
         }, cancellationToken: ct);
     }
 

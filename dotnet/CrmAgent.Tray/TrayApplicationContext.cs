@@ -1,4 +1,5 @@
 using System.ServiceProcess;
+using System.Runtime.InteropServices;
 
 namespace CrmAgent.Tray;
 
@@ -10,6 +11,10 @@ namespace CrmAgent.Tray;
 /// </summary>
 public sealed class TrayApplicationContext : ApplicationContext
 {
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool DestroyIcon(IntPtr hIcon);
+
     private readonly NotifyIcon _notifyIcon;
     private readonly ToolStripMenuItem _statusMenuItem;
     private readonly System.Windows.Forms.Timer _pollTimer;
@@ -142,9 +147,12 @@ public sealed class TrayApplicationContext : ApplicationContext
             };
             g.DrawString(lightning, font, Brushes.White, new RectangleF(0, 0, size, size), sf);
 
-            // Convert Bitmap → Icon via a pinned HICON handle
+            // Convert Bitmap → Icon. Clone so the native HICON can be freed.
             var hIcon = bmp.GetHicon();
-            return Icon.FromHandle(hIcon);
+            using var temp = Icon.FromHandle(hIcon);
+            var icon = (Icon)temp.Clone();
+            DestroyIcon(hIcon);
+            return icon;
         }
         catch
         {

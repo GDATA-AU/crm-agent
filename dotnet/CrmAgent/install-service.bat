@@ -17,7 +17,7 @@ setlocal
 set SERVICE_NAME=crm-agent
 set DISPLAY_NAME=LGA CRM Agent
 set DESCRIPTION=Polls the council portal for extraction jobs and writes results to Azure Blob Storage.
-set EXE_PATH=%~dp0publish\CrmAgent.exe
+set EXE_PATH=%~dp0..\..\publish\CrmAgent.exe
 
 if "%~1"=="--uninstall" (
     echo Stopping %SERVICE_NAME%...
