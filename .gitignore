@@ -3,3 +3,5 @@ dist/
 .env
 *.log
 publish/
+publish-tray/
+CrmAgent-win-x64.zip
