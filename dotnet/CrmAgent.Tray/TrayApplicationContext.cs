@@ -37,7 +37,7 @@ public sealed class TrayApplicationContext : ApplicationContext
 
         _notifyIcon = new NotifyIcon
         {
-            Icon = SystemIcons.Application,
+            Icon = LoadTrayIcon(),
             Text = "LGA CRM Agent",
             Visible = true,
             ContextMenuStrip = menu,
@@ -115,6 +115,41 @@ public sealed class TrayApplicationContext : ApplicationContext
         _pollTimer.Stop();
         _notifyIcon.Visible = false;
         Application.Exit();
+    }
+
+    /// <summary>
+    /// Renders the ⚡ HIGH VOLTAGE emoji (U+26A1) from Segoe UI Emoji at 32×32
+    /// and converts the bitmap to an <see cref="Icon"/> for the system tray.
+    /// Falls back to the generic application icon if the font is unavailable.
+    /// </summary>
+    private static Icon LoadTrayIcon()
+    {
+        const int size = 32;
+        const string lightning = "⚡";
+
+        try
+        {
+            using var bmp = new Bitmap(size, size);
+            using var g = Graphics.FromImage(bmp);
+            g.Clear(Color.Transparent);
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+
+            using var font = new Font("Segoe UI Emoji", size * 0.72f, GraphicsUnit.Pixel);
+            var sf = new StringFormat
+            {
+                Alignment = StringAlignment.Center,
+                LineAlignment = StringAlignment.Center,
+            };
+            g.DrawString(lightning, font, Brushes.White, new RectangleF(0, 0, size, size), sf);
+
+            // Convert Bitmap → Icon via a pinned HICON handle
+            var hIcon = bmp.GetHicon();
+            return Icon.FromHandle(hIcon);
+        }
+        catch
+        {
+            return SystemIcons.Application;
+        }
     }
 
     protected override void Dispose(bool disposing)
