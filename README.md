@@ -24,9 +24,7 @@ All business logic remains in the portal. The agent only interprets structured c
 ## Tech stack
 
 - **.NET 10** Worker Service
-- **Microsoft.Data.SqlClient** — SQL Server
-- **Npgsql** — PostgreSQL
-- **MySqlConnector** — MySQL / MariaDB
+- **Microsoft.Data.SqlClient** — SQL Server (Windows Integrated Security)
 - **Azure.Storage.Blobs** — blob upload
 - **Serilog** — structured JSON logging
 - **Microsoft.Extensions.Hosting.WindowsServices** — native Windows service support
@@ -109,62 +107,27 @@ Configuration is via `appsettings.json` or environment variables. Environment va
 
 Serilog log levels can be configured in the `Serilog` section of `appsettings.json`.
 
-### Local connection strings
+### SQL connection strings
 
-For production use, connection strings should be stored **locally on the agent host** and referenced by name in the job config — they never transit the network.
+No local connection string configuration is needed. The portal sends `server` and `database` with each SQL job. The agent builds the connection string locally using **Windows Integrated Security** — it always authenticates as the Windows service account. SQL User Id/Password credentials are never accepted.
 
-Set environment variables using the naming convention `CONN_<NAME>` (upper-cased, hyphens replaced with underscores):
+The service account must have **read-only** (`db_datareader`) access to the target databases. See [Setting up read-only database access](#setting-up-read-only-database-access) below.
 
-```
-CONN_PATHWAY_DB=Server=192.168.1.50;Database=Pathway;User Id=readonly;Password=xxx;Encrypt=false;
-CONN_MERIT_DB=Server=192.168.1.51;Database=Merit;User Id=readonly;Password=xxx;Encrypt=false;
-```
+## Setting up read-only database access
 
-The portal then sends job configs with `connectionRef: "pathway-db"` instead of the actual connection string.
+The agent's database access **must be read-only**. It only needs `SELECT` permission — it never writes to source databases.
 
-## Setting up read-only database users
-
-The agent's database credentials **must be read-only**. The agent user only needs `SELECT` permission — it never writes to source databases.
-
-### SQL Server
+The agent authenticates as the Windows service account. Grant read-only access to that account on each target database:
 
 ```sql
--- Create a login
-CREATE LOGIN crm_agent_readonly WITH PASSWORD = 'StrongPassword123!';
-
 -- Switch to the target database
 USE Pathway;
 
--- Create a user mapped to the login
-CREATE USER crm_agent_readonly FOR LOGIN crm_agent_readonly;
+-- Create a user mapped to the service account (domain\account)
+CREATE USER [DOMAIN\crm-agent-svc] FOR LOGIN [DOMAIN\crm-agent-svc];
 
 -- Grant read-only access
-EXEC sp_addrolemember 'db_datareader', 'crm_agent_readonly';
-```
-
-### PostgreSQL
-
-```sql
--- Create the user
-CREATE USER crm_agent_readonly WITH PASSWORD 'StrongPassword123!';
-
--- Grant connection to database
-GRANT CONNECT ON DATABASE pathway TO crm_agent_readonly;
-
--- Grant read-only access to all existing tables in a schema
-GRANT USAGE ON SCHEMA public TO crm_agent_readonly;
-GRANT SELECT ON ALL TABLES IN SCHEMA public TO crm_agent_readonly;
-
--- Ensure future tables are also readable
-ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO crm_agent_readonly;
-```
-
-### MySQL / MariaDB
-
-```sql
-CREATE USER 'crm_agent_readonly'@'%' IDENTIFIED BY 'StrongPassword123!';
-GRANT SELECT ON merit.* TO 'crm_agent_readonly'@'%';
-FLUSH PRIVILEGES;
+EXEC sp_addrolemember 'db_datareader', 'DOMAIN\crm-agent-svc';
 ```
 
 ## Development
@@ -201,10 +164,10 @@ dotnet run
 
 ### Agent can't connect to the database
 
-- Verify the connection string is correct (host, port, database name, credentials)
+- Verify the service account running the agent has `db_datareader` access to the target database
+- Check that TCP/IP is enabled in SQL Server Configuration Manager
+- Confirm the server name in the portal matches the actual SQL Server hostname/instance
 - Check that the database server allows connections from the agent host's IP
-- Confirm the database user has `SELECT` permission on the required tables
-- For SQL Server: check that TCP/IP is enabled in SQL Server Configuration Manager
 
 ### Blob upload fails
 
@@ -278,6 +241,8 @@ Each file is gzip-compressed NDJSON (one JSON object per line). Every row includ
 
 - All communication with the portal is over HTTPS with certificate validation enabled
 - The agent API key is stored in the environment, not in code
-- Connection strings for local databases are stored locally and referenced by name — they never transit the network
-- The agent's database credentials must be read-only (see [Setting up read-only database users](#setting-up-read-only-database-users))
+- **SQL connections use Windows Integrated Security only** — the agent authenticates as the service account. SQL usernames and passwords are never accepted
+- The portal sends only server name and database name for SQL jobs — no credentials transit the network
+- The agent's database access must be read-only (see [Setting up read-only database access](#setting-up-read-only-database-access))
+- The SQL handler rejects any query that doesn't start with `SELECT` or `WITH`
 - The agent only interprets structured configuration objects for known job types — it does **not** eval or execute arbitrary code

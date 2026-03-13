@@ -29,19 +29,6 @@ public enum JobStatus
     Failed,
 }
 
-[JsonConverter(typeof(JsonStringEnumConverter<SqlDriver>))]
-public enum SqlDriver
-{
-    [JsonStringEnumMemberName("mssql")]
-    Mssql,
-
-    [JsonStringEnumMemberName("postgres")]
-    Postgres,
-
-    [JsonStringEnumMemberName("mysql")]
-    Mysql,
-}
-
 [JsonConverter(typeof(JsonStringEnumConverter<PaginationType>))]
 public enum PaginationType
 {
@@ -92,9 +79,8 @@ public sealed class RestApiAuth
 
 public sealed class SqlJobConfig
 {
-    public required SqlDriver Driver { get; init; }
-    public string? ConnectionString { get; init; }
-    public string? ConnectionRef { get; init; }
+    public required string Server { get; init; }
+    public required string Database { get; init; }
     public required string Query { get; init; }
     public required string BlobPath { get; init; }
     public required string[] HashFields { get; init; }
@@ -120,9 +106,8 @@ public sealed class JobConfig
     public string? Type { get; init; }
 
     // SQL fields
-    public SqlDriver? Driver { get; init; }
-    public string? ConnectionString { get; init; }
-    public string? ConnectionRef { get; init; }
+    public string? Server { get; init; }
+    public string? Database { get; init; }
     public string? Query { get; init; }
 
     // REST API fields
@@ -138,9 +123,8 @@ public sealed class JobConfig
 
     public SqlJobConfig ToSqlConfig() => new()
     {
-        Driver = Driver ?? throw new InvalidOperationException("SQL job config missing 'driver'"),
-        ConnectionString = ConnectionString,
-        ConnectionRef = ConnectionRef,
+        Server = Server ?? throw new InvalidOperationException("SQL job config missing 'server'"),
+        Database = Database ?? throw new InvalidOperationException("SQL job config missing 'database'"),
         Query = Query ?? throw new InvalidOperationException("SQL job config missing 'query'"),
         BlobPath = BlobPath ?? throw new InvalidOperationException("SQL job config missing 'blobPath'"),
         HashFields = HashFields ?? throw new InvalidOperationException("SQL job config missing 'hashFields'"),

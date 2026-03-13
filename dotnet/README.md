@@ -19,9 +19,7 @@ The agent is **intentionally dumb** — it has no knowledge of the citizen schem
 ## Tech stack
 
 - **.NET 10** Worker Service
-- **Microsoft.Data.SqlClient** — SQL Server
-- **Npgsql** — PostgreSQL
-- **MySqlConnector** — MySQL / MariaDB
+- **Microsoft.Data.SqlClient** — SQL Server (Windows Integrated Security)
 - **Azure.Storage.Blobs** — blob upload
 - **Serilog** — structured JSON logging
 - **Microsoft.Extensions.Hosting.WindowsServices** — native Windows service support
@@ -45,7 +43,7 @@ CrmAgent/
   Handlers/
     IJobHandler.cs            # Handler interface
     HandlerFactory.cs         # Resolves job type → handler
-    SqlHandler.cs             # SQL handler (MSSQL, Postgres, MySQL)
+    SqlHandler.cs             # SQL handler (MSSQL, Windows Integrated Security)
     RestApiHandler.cs         # REST API handler (offset/cursor/link-header pagination)
 CrmAgent.Tests/
     HashServiceTests.cs
@@ -121,17 +119,11 @@ Configuration can be set via `appsettings.json` or environment variables. Enviro
 | `Agent:PollIntervalMs` | `POLL_INTERVAL_MS` | | `30000` | Poll interval in ms |
 | `Agent:HeartbeatIntervalMs` | `HEARTBEAT_INTERVAL_MS` | | `30000` | Heartbeat interval in ms |
 
-### Local connection strings
+### SQL connection strings
 
-Connection strings are stored locally and referenced by name:
+No local connection string configuration is needed for SQL Server. The portal sends `server` and `database` with each SQL job, and the agent builds the connection string locally using **Windows Integrated Security** (the service account). SQL User Id/Password credentials are never accepted.
 
-```json
-// Environment variables
-CONN_PATHWAY_DB=Server=192.168.1.50;Database=Pathway;User Id=readonly;Password=xxx;Encrypt=false;
-CONN_MERIT_DB=Server=192.168.1.51;Database=Merit;User Id=readonly;Password=xxx;Encrypt=false;
-```
-
-The portal sends job configs with `connectionRef: "pathway-db"` instead of the actual connection string.
+The service account must have `db_datareader` access on the target databases.
 
 ## Tests
 

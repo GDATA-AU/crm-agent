@@ -2,14 +2,12 @@ using System.Data.Common;
 using CrmAgent.Models;
 using CrmAgent.Services;
 using Microsoft.Data.SqlClient;
-using MySqlConnector;
-using Npgsql;
 
 namespace CrmAgent.Handlers;
 
 /// <summary>
-/// Executes SQL extraction jobs using streaming database cursors.
-/// Supports MSSQL, PostgreSQL, and MySQL.
+/// Executes SQL extraction jobs against MSSQL using streaming database cursors.
+/// Always uses Windows Integrated Security (the service account).
 /// </summary>
 public sealed class SqlHandler : IJobHandler
 {
@@ -27,7 +25,7 @@ public sealed class SqlHandler : IJobHandler
     public async Task<HandlerResult> ExecuteAsync(Job job, Action<JobProgress> onProgress, CancellationToken ct)
     {
         var config = job.Config.ToSqlConfig();
-        var connectionString = AgentConfig.ResolveConnectionString(config.ConnectionRef, config.ConnectionString);
+        var connectionString = BuildMssqlConnectionString(config);
 
         // Guard: reject queries that aren't SELECT statements.
         var firstToken = config.Query.TrimStart().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries)[0].ToUpperInvariant();
@@ -41,21 +39,15 @@ public sealed class SqlHandler : IJobHandler
         var timestamp = DateTime.UtcNow;
         var blobName = BlobStorageService.BuildBlobName(job.BlobPath, timestamp);
 
-        _logger.LogInformation("Starting SQL extraction for job {JobId} driver={Driver} blob={BlobName}",
-            job.Id, config.Driver, blobName);
+        _logger.LogInformation("Starting SQL extraction for job {JobId} blob={BlobName}",
+            job.Id, blobName);
 
         int processedRows;
         using var memoryStream = new MemoryStream();
 
         await using (var writer = new NdjsonGzipWriter(memoryStream, leaveOpen: true))
         {
-            processedRows = config.Driver switch
-            {
-                SqlDriver.Mssql => await ExecuteMssqlAsync(connectionString, config.Query, job.HashFields, writer, onProgress, ct),
-                SqlDriver.Postgres => await ExecutePostgresAsync(connectionString, config.Query, job.HashFields, writer, onProgress, ct),
-                SqlDriver.Mysql => await ExecuteMysqlAsync(connectionString, config.Query, job.HashFields, writer, onProgress, ct),
-                _ => throw new InvalidOperationException($"Unsupported database driver: {config.Driver}"),
-            };
+            processedRows = await ExecuteMssqlAsync(connectionString, config.Query, job.HashFields, writer, onProgress, ct);
         }
 
         // Upload the compressed NDJSON to blob storage.
@@ -68,6 +60,27 @@ public sealed class SqlHandler : IJobHandler
         return new HandlerResult { BlobName = blobName, ProcessedRows = processedRows };
     }
 
+    /// <summary>
+    /// Builds an MSSQL connection string from the server and database name
+    /// provided by the portal, using Windows Integrated Security (the service account).
+    /// SQL authentication credentials are never accepted.
+    /// </summary>
+    private static string BuildMssqlConnectionString(SqlJobConfig config)
+    {
+        if (string.IsNullOrEmpty(config.Server))
+            throw new InvalidOperationException("MSSQL job config missing 'server'");
+        if (string.IsNullOrEmpty(config.Database))
+            throw new InvalidOperationException("MSSQL job config missing 'database'");
+
+        var builder = new SqlConnectionStringBuilder
+        {
+            DataSource = config.Server,
+            InitialCatalog = config.Database,
+            IntegratedSecurity = true,
+        };
+        return builder.ConnectionString;
+    }
+
     private static async Task<int> ExecuteMssqlAsync(
         string connectionString, string query, string[] hashFields,
         NdjsonGzipWriter writer, Action<JobProgress> onProgress, CancellationToken ct)
@@ -76,32 +89,6 @@ public sealed class SqlHandler : IJobHandler
         await connection.OpenAsync(ct);
 
         await using var command = new SqlCommand(query, connection);
-        await using var reader = await command.ExecuteReaderAsync(ct);
-
-        return await StreamReaderAsync(reader, hashFields, writer, onProgress, ct);
-    }
-
-    private static async Task<int> ExecutePostgresAsync(
-        string connectionString, string query, string[] hashFields,
-        NdjsonGzipWriter writer, Action<JobProgress> onProgress, CancellationToken ct)
-    {
-        await using var connection = new NpgsqlConnection(connectionString);
-        await connection.OpenAsync(ct);
-
-        await using var command = new NpgsqlCommand(query, connection);
-        await using var reader = await command.ExecuteReaderAsync(ct);
-
-        return await StreamReaderAsync(reader, hashFields, writer, onProgress, ct);
-    }
-
-    private static async Task<int> ExecuteMysqlAsync(
-        string connectionString, string query, string[] hashFields,
-        NdjsonGzipWriter writer, Action<JobProgress> onProgress, CancellationToken ct)
-    {
-        await using var connection = new MySqlConnection(connectionString);
-        await connection.OpenAsync(ct);
-
-        await using var command = new MySqlCommand(query, connection);
         await using var reader = await command.ExecuteReaderAsync(ct);
 
         return await StreamReaderAsync(reader, hashFields, writer, onProgress, ct);
