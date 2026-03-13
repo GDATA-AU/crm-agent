@@ -39,7 +39,7 @@ export async function reportJobStatus(
   update: JobStatusUpdate
 ): Promise<void> {
   const { portalUrl, agentApiKey } = getConfig();
-  const url = `${portalUrl}/api/agent/jobs/${jobId}`;
+  const url = `${portalUrl}/api/agent/jobs/${encodeURIComponent(jobId)}`;
 
   try {
     const res = await fetch(url, {

@@ -66,6 +66,11 @@ function getNestedValue(obj: unknown, path: string): unknown {
   }, obj);
 }
 
+interface PageResult {
+  body: unknown;
+  headers: Headers;
+}
+
 /**
  * Fetch a single page from the API.
  */
@@ -73,13 +78,13 @@ async function fetchPage(
   url: string,
   method: "GET" | "POST",
   extraHeaders: Record<string, string>
-): Promise<unknown> {
+): Promise<PageResult> {
   const res = await fetch(url, { method, headers: extraHeaders });
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`REST API request failed: ${res.status} ${res.statusText} — ${text}`);
   }
-  return res.json();
+  return { body: await res.json(), headers: res.headers };
 }
 
 /**
@@ -123,7 +128,7 @@ export const restApiHandler: JobHandler = {
 
     if (!pagination) {
       // Single-page response
-      const data = await fetchPage(config.baseUrl, config.method, baseHeaders);
+      const { body: data } = await fetchPage(config.baseUrl, config.method, baseHeaders);
       const records = Array.isArray(data) ? data : [data];
       for (const record of records as Record<string, unknown>[]) {
         const rowWithHash = {
@@ -137,15 +142,7 @@ export const restApiHandler: JobHandler = {
     } else if (pagination.type === "link-header") {
       let nextUrl: string | null = config.baseUrl;
       while (nextUrl) {
-        const res = await fetch(nextUrl, {
-          method: config.method,
-          headers: baseHeaders,
-        });
-        if (!res.ok) {
-          const text = await res.text().catch(() => "");
-          throw new Error(`REST API request failed: ${res.status} — ${text}`);
-        }
-        const data = (await res.json()) as unknown;
+        const { body: data, headers } = await fetchPage(nextUrl, config.method, baseHeaders);
         const records = pagination.dataField
           ? (getNestedValue(data, pagination.dataField) as Record<string, unknown>[])
           : (data as Record<string, unknown>[]);
@@ -160,7 +157,7 @@ export const restApiHandler: JobHandler = {
         }
 
         onProgress({ processedRows, message: `Processed ${processedRows} records...` });
-        nextUrl = parseLinkHeaderNext(res.headers);
+        nextUrl = parseLinkHeaderNext(headers);
       }
       passThrough.end();
     } else if (pagination.type === "offset") {
@@ -172,7 +169,7 @@ export const restApiHandler: JobHandler = {
       while (true) {
         const separator = config.baseUrl.includes("?") ? "&" : "?";
         const url = `${config.baseUrl}${separator}${pageParam}=${page}&${pageSizeParam}=${pageSize}`;
-        const data = await fetchPage(url, config.method, baseHeaders);
+        const { body: data } = await fetchPage(url, config.method, baseHeaders);
 
         const records = pagination.dataField
           ? (getNestedValue(data, pagination.dataField) as Record<string, unknown>[])
@@ -210,7 +207,7 @@ export const restApiHandler: JobHandler = {
         const separator = url.includes("?") ? "&" : "?";
         url = `${url}${separator}${params.toString()}`;
 
-        const data = await fetchPage(url, config.method, baseHeaders);
+        const { body: data } = await fetchPage(url, config.method, baseHeaders);
 
         const records = pagination.dataField
           ? (getNestedValue(data, pagination.dataField) as Record<string, unknown>[])

@@ -41,11 +41,17 @@ async function executeMssql(
           _rowHash: computeRowHash(row, hashFields),
         };
         const line = JSON.stringify(rowWithHash) + "\n";
-        passThrough.write(line, "utf8");
+        const canContinue = passThrough.write(line, "utf8");
 
         processedRows++;
         if (processedRows % 1000 === 0) {
           onProgress({ processedRows, message: `Processing row ${processedRows}...` });
+        }
+
+        // Back-pressure: pause the request until the stream drains.
+        if (!canContinue) {
+          request.pause();
+          passThrough.once("drain", () => request.resume());
         }
       });
 
@@ -90,12 +96,10 @@ async function executePostgres(
 
     const BATCH = 1000;
 
-    async function readBatch(): Promise<void> {
+    // Use a loop instead of recursion to avoid stack overflow on large datasets.
+    while (true) {
       const rows = await cursor.read(BATCH) as Record<string, unknown>[];
-      if (rows.length === 0) {
-        passThrough.end();
-        return;
-      }
+      if (rows.length === 0) break;
       for (const row of rows) {
         const rowWithHash = {
           ...row,
@@ -105,10 +109,9 @@ async function executePostgres(
         processedRows++;
       }
       onProgress({ processedRows, message: `Processing row ${processedRows}...` });
-      return readBatch();
     }
 
-    await readBatch();
+    passThrough.end();
     await cursor.close();
     await uploadPromise;
     return processedRows;
@@ -138,42 +141,45 @@ async function executeMysql(
 
   let processedRows = 0;
 
-  await new Promise<void>((resolve, reject) => {
-    connection.connect((err) => {
-      if (err) return reject(err);
+  try {
+    await new Promise<void>((resolve, reject) => {
+      connection.connect((err) => {
+        if (err) return reject(err);
 
-      const q = connection.query(query);
+        const q = connection.query(query);
 
-      (q as unknown as NodeJS.EventEmitter).on(
-        "result",
-        (row: Record<string, unknown>) => {
-          const rowWithHash = {
-            ...row,
-            _rowHash: computeRowHash(row, hashFields),
-          };
-          passThrough.write(JSON.stringify(rowWithHash) + "\n", "utf8");
-          processedRows++;
-          if (processedRows % 1000 === 0) {
-            onProgress({ processedRows, message: `Processing row ${processedRows}...` });
+        (q as unknown as NodeJS.EventEmitter).on(
+          "result",
+          (row: Record<string, unknown>) => {
+            const rowWithHash = {
+              ...row,
+              _rowHash: computeRowHash(row, hashFields),
+            };
+            passThrough.write(JSON.stringify(rowWithHash) + "\n", "utf8");
+            processedRows++;
+            if (processedRows % 1000 === 0) {
+              onProgress({ processedRows, message: `Processing row ${processedRows}...` });
+            }
           }
-        }
-      );
+        );
 
-      (q as unknown as NodeJS.EventEmitter).on("error", (err: Error) => {
-        passThrough.destroy(err);
-        reject(err);
-      });
+        (q as unknown as NodeJS.EventEmitter).on("error", (err: Error) => {
+          passThrough.destroy(err);
+          reject(err);
+        });
 
-      (q as unknown as NodeJS.EventEmitter).on("end", () => {
-        passThrough.end();
-        resolve();
+        (q as unknown as NodeJS.EventEmitter).on("end", () => {
+          passThrough.end();
+          resolve();
+        });
       });
     });
-  });
 
-  connection.destroy();
-  await uploadPromise;
-  return processedRows;
+    await uploadPromise;
+    return processedRows;
+  } finally {
+    connection.destroy();
+  }
 }
 
 export const sqlHandler: JobHandler = {
@@ -183,6 +189,16 @@ export const sqlHandler: JobHandler = {
       config.connectionRef,
       config.connectionString
     );
+
+    // Basic guard: reject queries that look like they modify data.
+    const firstToken = config.query.trimStart().split(/\s/)[0].toUpperCase();
+    const allowed = new Set(["SELECT", "WITH"]);
+    if (!allowed.has(firstToken)) {
+      throw new Error(
+        `SQL query must be a SELECT statement (got "${firstToken}..."). ` +
+        `The agent does not execute DML/DDL queries.`
+      );
+    }
 
     const timestamp = new Date();
     const blobName = buildBlobName(job.blobPath, timestamp);

@@ -12,23 +12,27 @@ let currentJobId: string | undefined;
  */
 export function stopLoop(): void {
   running = false;
+  wakeUp?.();
 }
 
+let wakeUp: (() => void) | undefined;
+
 /**
- * Sleep for `ms` milliseconds, but wake up immediately if `running` becomes
- * false.
+ * Sleep for `ms` milliseconds, but wake up immediately if `stopLoop()` is
+ * called (e.g. during graceful shutdown).
  */
 function sleep(ms: number): Promise<void> {
+  if (!running) return Promise.resolve();
   return new Promise((resolve) => {
-    const id = setTimeout(resolve, ms);
-    // If the agent is shutting down, resolve the sleep immediately by checking
-    // `running` periodically.  In practice, the shutdown handler calls
-    // `stopLoop()` which terminates the while-loop at the next check, so a
-    // simple timeout is fine here.
-    if (!running) {
-      clearTimeout(id);
+    const id = setTimeout(() => {
+      wakeUp = undefined;
       resolve();
-    }
+    }, ms);
+    wakeUp = () => {
+      clearTimeout(id);
+      wakeUp = undefined;
+      resolve();
+    };
   });
 }
 
