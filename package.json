@@ -1,0 +1,54 @@
+{
+  "name": "crm-agent",
+  "version": "1.0.0",
+  "description": "Lightweight extraction agent — polls the LGA Customer Portal for jobs, executes them locally, and writes results to Azure Blob Storage",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --sourcemap --out-dir dist",
+    "start": "node --enable-source-maps dist/index.js",
+    "dev": "tsx src/index.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GDATA-AU/crm-agent.git"
+  },
+  "keywords": [
+    "crm",
+    "agent",
+    "azure",
+    "blob",
+    "extraction"
+  ],
+  "author": "GDATA-AU",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/GDATA-AU/crm-agent/issues"
+  },
+  "homepage": "https://github.com/GDATA-AU/crm-agent#readme",
+  "devDependencies": {
+    "@types/mssql": "^9.1.9",
+    "@types/node": "^25.5.0",
+    "@types/node-windows": "^0.1.6",
+    "@types/pg": "^8.18.0",
+    "@types/pg-cursor": "^2.7.2",
+    "@types/pino": "^7.0.4",
+    "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.0"
+  },
+  "dependencies": {
+    "@azure/storage-blob": "^12.31.0",
+    "dotenv": "^17.3.1",
+    "mssql": "^12.2.0",
+    "mysql2": "^3.19.1",
+    "node-windows": "^1.0.0-beta.8",
+    "pg": "^8.20.0",
+    "pg-cursor": "^2.19.0",
+    "pino": "^10.3.1"
+  }
+}
