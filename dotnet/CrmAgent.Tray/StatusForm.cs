@@ -141,19 +141,29 @@ public sealed class StatusForm : Form
         headerLayout.Controls.Add(statusRow);
         headerLayout.Controls.Add(_portalLabel);
         headerLayout.Controls.Add(btnRow);
-        headerLayout.Controls.Add(activityLabel);
         headerCard.Controls.Add(headerLayout);
+
+        // -- Activity label sits between header and log --
+        var activityHeader = new Panel
+        {
+            Dock = DockStyle.Top,
+            Height = activityLabel.PreferredHeight + 20,
+            Padding = new Padding(20, 14, 20, 0),
+            BackColor = Theme.Background,
+        };
+        activityHeader.Controls.Add(activityLabel);
 
         // -- Activity panel fills remaining space --
         var activityPanel = new Panel
         {
             Dock = DockStyle.Fill,
-            Padding = new Padding(20, 4, 20, 16),
+            Padding = new Padding(20, 0, 20, 16),
             BackColor = Theme.Background,
         };
         activityPanel.Controls.Add(_activityList);
 
         Controls.Add(activityPanel);
+        Controls.Add(activityHeader);
         Controls.Add(headerCard);
 
         RefreshDisplay();

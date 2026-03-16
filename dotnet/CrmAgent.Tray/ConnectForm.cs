@@ -81,6 +81,10 @@ public sealed class ConnectForm : Form
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
+        // Explicit row heights so multi-line labels ("Azure Storage\nConnection String") aren't clipped
+        for (var i = 0; i < 10; i++)
+            layout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
         // Title spans both columns
         layout.Controls.Add(title, 0, 0);
         layout.SetColumnSpan(title, 2);
@@ -151,10 +155,12 @@ public sealed class ConnectForm : Form
         var label = new Label
         {
             Text = labelText,
+            AutoSize = true,
+            Anchor = AnchorStyles.Right,
             TextAlign = ContentAlignment.MiddleRight,
-            Dock = DockStyle.Fill,
             ForeColor = Theme.TextSecondary,
             Font = Theme.Body,
+            Margin = new Padding(0, 6, 6, 6),
         };
         layout.Controls.Add(label, 0, row);
         layout.Controls.Add(control, 1, row);
