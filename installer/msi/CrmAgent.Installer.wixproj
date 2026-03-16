@@ -9,4 +9,29 @@
     <TrayPublishDir>..\..\publish-tray</TrayPublishDir>
     <DefineConstants>PublishDir=$(PublishDir);TrayPublishDir=$(TrayPublishDir)</DefineConstants>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.Heat" Version="4.0.5" />
+  </ItemGroup>
+
+  <!--
+    Harvest remaining files (satellite assemblies, .deps.json, .runtimeconfig.json)
+    that aren't declared explicitly in Product.wxs.
+  -->
+  <ItemGroup>
+    <HarvestDirectory Include="$(PublishDir)">
+      <ComponentGroupName>HarvestedServiceFiles</ComponentGroupName>
+      <DirectoryRefId>INSTALLFOLDER</DirectoryRefId>
+      <PreprocessorVariable>var.PublishDir</PreprocessorVariable>
+      <SuppressRootDirectory>true</SuppressRootDirectory>
+      <Transforms>ExcludeServiceFiles.xslt</Transforms>
+    </HarvestDirectory>
+
+    <HarvestDirectory Include="$(TrayPublishDir)">
+      <ComponentGroupName>HarvestedTrayFiles</ComponentGroupName>
+      <DirectoryRefId>TRAYFOLDER</DirectoryRefId>
+      <PreprocessorVariable>var.TrayPublishDir</PreprocessorVariable>
+      <SuppressRootDirectory>true</SuppressRootDirectory>
+    </HarvestDirectory>
+  </ItemGroup>
 </Project>
