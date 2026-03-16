@@ -67,7 +67,7 @@ jobs:
         run: |
           Remove-Item -Path installer/msi-artifact -Recurse -Force -ErrorAction SilentlyContinue
           New-Item -Path installer/msi-artifact -ItemType Directory | Out-Null
-          Copy-Item -Path "${{ steps.find_msi.outputs.msi_dir }}\*" -Destination installer/msi-artifact -Recurse -Force
+          Copy-Item -Path "${{ steps.find_msi.outputs.msi_path }}" -Destination installer/msi-artifact -Force
           Get-ChildItem -Path installer/msi-artifact -Recurse | Select-Object FullName, Length | Format-Table -AutoSize
 
       - name: Upload MSI artifact bundle
