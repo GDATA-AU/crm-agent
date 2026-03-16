@@ -1,5 +1,5 @@
 @echo off
-:: Setup.bat — LGA CRM Agent
+:: Setup.bat — GDATA CRM Agent
 ::
 :: Run this once to install the Windows service and launch the configuration wizard.
 :: You will be prompted for administrator rights via UAC.
@@ -15,8 +15,8 @@ if %errorLevel% neq 0 (
 setlocal
 
 set "SERVICE_NAME=gdata-agent"
-set "DISPLAY_NAME=LGA CRM Agent"
-set "DESCRIPTION=Polls the council portal for extraction jobs and writes results to Azure Blob Storage."
+set "DISPLAY_NAME=GDATA CRM Agent"
+set "DESCRIPTION=Polls the customer portal for extraction jobs and processes them locally."
 set "SERVICE_EXE=%~dp0service\CrmAgent.exe"
 set "TRAY_EXE=%~dp0tray\CrmAgentTray.exe"
 
@@ -39,7 +39,8 @@ sc query %SERVICE_NAME% >nul 2>&1
 if %errorLevel% equ 0 (
     echo %DISPLAY_NAME% service is already installed — updating binary path...
     sc stop %SERVICE_NAME% >nul 2>&1
-    sc config %SERVICE_NAME% binPath= "\"%SERVICE_EXE%\""
+    sc config %SERVICE_NAME% binPath= "\"%SERVICE_EXE%\"" DisplayName= "%DISPLAY_NAME%"
+    sc description %SERVICE_NAME% "%DESCRIPTION%"
     goto :launch_tray
 )
 

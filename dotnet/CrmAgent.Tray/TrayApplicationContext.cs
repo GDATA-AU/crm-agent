@@ -24,7 +24,7 @@ public sealed class TrayApplicationContext : ApplicationContext
     {
         _statusMenuItem = new ToolStripMenuItem("Checking status…") { Enabled = false };
 
-        var headerItem = new ToolStripMenuItem("LGA CRM Agent")
+        var headerItem = new ToolStripMenuItem("GDATA CRM Agent")
         {
             Enabled = false,
             Font = new Font(SystemFonts.MenuFont ?? SystemFonts.DefaultFont!, FontStyle.Bold),
@@ -43,7 +43,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         _notifyIcon = new NotifyIcon
         {
             Icon = LoadTrayIcon(),
-            Text = "LGA CRM Agent",
+            Text = "GDATA CRM Agent",
             Visible = true,
             ContextMenuStrip = menu,
         };
@@ -72,11 +72,11 @@ public sealed class TrayApplicationContext : ApplicationContext
             var status = ServiceManager.GetStatus();
             var (text, tip) = status switch
             {
-                ServiceControllerStatus.Running      => ("● Running",   "LGA CRM Agent | Running"),
-                ServiceControllerStatus.Stopped      => ("○ Stopped",   "LGA CRM Agent | Stopped"),
-                ServiceControllerStatus.StartPending => ("◌ Starting…", "LGA CRM Agent | Starting"),
-                ServiceControllerStatus.StopPending  => ("◌ Stopping…", "LGA CRM Agent | Stopping"),
-                _                                    => ("? Unknown",   "LGA CRM Agent | Unknown"),
+                ServiceControllerStatus.Running      => ("● Running",   "GDATA CRM Agent | Running"),
+                ServiceControllerStatus.Stopped      => ("○ Stopped",   "GDATA CRM Agent | Stopped"),
+                ServiceControllerStatus.StartPending => ("◌ Starting…", "GDATA CRM Agent | Starting"),
+                ServiceControllerStatus.StopPending  => ("◌ Stopping…", "GDATA CRM Agent | Stopping"),
+                _                                    => ("? Unknown",   "GDATA CRM Agent | Unknown"),
             };
             _statusMenuItem.Text = text;
             // NotifyIcon.Text is capped at 63 characters

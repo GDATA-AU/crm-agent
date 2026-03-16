@@ -40,7 +40,7 @@ SERVICE_GROUP="$(id -gn "${SERVICE_USER}")"
 
 cat > "${SERVICE_FILE}" <<EOF
 [Unit]
-Description=LGA CRM Agent — polls the council portal for extraction jobs and writes results to Azure Blob Storage
+Description=GDATA CRM Agent — polls the customer portal for extraction jobs and processes them locally
 After=network-online.target
 Wants=network-online.target
 

@@ -15,8 +15,8 @@ REM   - appsettings.json is configured
 setlocal
 
 set SERVICE_NAME=gdata-agent
-set DISPLAY_NAME=LGA CRM Agent
-set DESCRIPTION=Polls the council portal for extraction jobs and writes results to Azure Blob Storage.
+set DISPLAY_NAME=GDATA CRM Agent
+set DESCRIPTION=Polls the customer portal for extraction jobs and processes them locally.
 set EXE_PATH=%~dp0..\..\publish\CrmAgent.exe
 
 if "%~1"=="--uninstall" (

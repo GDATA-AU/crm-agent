@@ -18,7 +18,7 @@ public sealed class ConnectForm : Form
 
     public ConnectForm()
     {
-        Text = "LGA CRM Agent – Setup";
+        Text = "GDATA CRM Agent – Setup";
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;

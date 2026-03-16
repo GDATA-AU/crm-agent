@@ -18,7 +18,7 @@ public sealed class StatusForm : Form
 
     public StatusForm()
     {
-        Text = "LGA CRM Agent";
+        Text = "GDATA CRM Agent";
         FormBorderStyle = FormBorderStyle.FixedToolWindow;
         StartPosition = FormStartPosition.Manual;
         Width = 380;
