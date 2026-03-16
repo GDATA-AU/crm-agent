@@ -13,13 +13,12 @@ public sealed class StatusForm : Form
     public event Action? ConfigureRequested;
 
     private readonly Label _statusLabel;
+    private readonly Panel _statusDot;
     private readonly Label _portalLabel;
     private readonly Button _startStopBtn;
     private readonly ListBox _activityList;
     private readonly System.Windows.Forms.Timer _refreshTimer;
     private readonly LogTailer _logTailer = new();
-
-    private static readonly Color DimText = Color.FromArgb(140, 140, 140);
 
     public StatusForm()
     {
@@ -27,22 +26,58 @@ public sealed class StatusForm : Form
         Icon = TrayApplicationContext.LoadAppIcon();
         FormBorderStyle = FormBorderStyle.Sizable;
         StartPosition = FormStartPosition.CenterScreen;
-        MinimumSize = new Size(480, 400);
-        Size = new Size(560, 480);
+        MinimumSize = new Size(520, 440);
+        Size = new Size(600, 520);
         TopMost = true;
+        Theme.ApplyToForm(this);
+
+        // ── Status indicator row ──
+        _statusDot = new Panel
+        {
+            Size = new Size(12, 12),
+            Margin = new Padding(0, 6, 8, 0),
+            BackColor = Theme.TextDim,
+        };
+        _statusDot.Paint += (_, e) =>
+        {
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            using var brush = new SolidBrush(_statusDot.BackColor);
+            e.Graphics.Clear(Theme.Surface);
+            e.Graphics.FillEllipse(brush, 0, 0, 11, 11);
+        };
 
         _statusLabel = new Label
         {
             AutoSize = true,
-            Font = new Font(SystemFonts.DefaultFont?.FontFamily ?? SystemFonts.MessageBoxFont!.FontFamily, 11f),
+            Font = Theme.Heading,
+            ForeColor = Theme.TextPrimary,
+            Margin = new Padding(0, 0, 0, 0),
         };
+
+        var statusRow = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            WrapContents = false,
+            FlowDirection = FlowDirection.LeftToRight,
+            BackColor = Theme.Surface,
+            Margin = new Padding(0),
+        };
+        statusRow.Controls.Add(_statusDot);
+        statusRow.Controls.Add(_statusLabel);
+
         _portalLabel = new Label
         {
             AutoSize = true,
-            ForeColor = SystemColors.GrayText,
+            ForeColor = Theme.TextSecondary,
+            Font = Theme.Small,
+            Margin = new Padding(0, 2, 0, 0),
         };
+
         _startStopBtn = new Button { AutoSize = true };
+        Theme.StylePrimary(_startStopBtn);
+
         var configBtn = new Button { Text = "Configure…", AutoSize = true };
+        Theme.StyleSecondary(configBtn);
 
         _startStopBtn.Click += OnStartStop;
         configBtn.Click += (_, _) =>
@@ -55,7 +90,8 @@ public sealed class StatusForm : Form
         {
             AutoSize = true,
             WrapContents = false,
-            Margin = new Padding(0, 4, 0, 0),
+            Margin = new Padding(0, 10, 0, 0),
+            BackColor = Theme.Surface,
         };
         btnRow.Controls.Add(_startStopBtn);
         btnRow.Controls.Add(configBtn);
@@ -63,51 +99,62 @@ public sealed class StatusForm : Form
         // -- Activity feed --
         var activityLabel = new Label
         {
-            Text = "Recent Activity",
+            Text = "RECENT ACTIVITY",
             AutoSize = true,
-            Font = new Font(SystemFonts.DefaultFont?.FontFamily ?? SystemFonts.MessageBoxFont!.FontFamily, 9f, FontStyle.Bold),
-            Margin = new Padding(0, 10, 0, 4),
+            Font = Theme.SubHead,
+            ForeColor = Theme.TextSecondary,
+            Margin = new Padding(0, 14, 0, 6),
         };
 
         _activityList = new ListBox
         {
             Dock = DockStyle.Fill,
-            BorderStyle = BorderStyle.FixedSingle,
+            BorderStyle = BorderStyle.None,
             IntegralHeight = false,
             SelectionMode = SelectionMode.None,
             DrawMode = DrawMode.OwnerDrawFixed,
-            ItemHeight = 20,
-            BackColor = Color.FromArgb(30, 30, 30),
-            ForeColor = Color.FromArgb(220, 220, 220),
-            Font = new Font("Consolas", 8.5f, FontStyle.Regular),
+            ItemHeight = 24,
+            BackColor = Theme.LogBackground,
+            ForeColor = Theme.LogText,
+            Font = Theme.Mono,
         };
         _activityList.DrawItem += OnDrawActivityItem;
 
-        // -- Top panel (status + buttons) --
-        var topPanel = new FlowLayoutPanel
+        // -- Header card (status + buttons) --
+        var headerCard = new Panel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            BackColor = Theme.Surface,
+            Padding = new Padding(20, 16, 20, 16),
+        };
+
+        var headerLayout = new FlowLayoutPanel
         {
             FlowDirection = FlowDirection.TopDown,
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-            Dock = DockStyle.Top,
-            Padding = new Padding(14, 14, 14, 4),
+            Dock = DockStyle.Fill,
             WrapContents = false,
+            BackColor = Theme.Surface,
         };
-        topPanel.Controls.Add(_statusLabel);
-        topPanel.Controls.Add(_portalLabel);
-        topPanel.Controls.Add(btnRow);
-        topPanel.Controls.Add(activityLabel);
+        headerLayout.Controls.Add(statusRow);
+        headerLayout.Controls.Add(_portalLabel);
+        headerLayout.Controls.Add(btnRow);
+        headerLayout.Controls.Add(activityLabel);
+        headerCard.Controls.Add(headerLayout);
 
         // -- Activity panel fills remaining space --
         var activityPanel = new Panel
         {
             Dock = DockStyle.Fill,
-            Padding = new Padding(14, 0, 14, 14),
+            Padding = new Padding(20, 4, 20, 16),
+            BackColor = Theme.Background,
         };
         activityPanel.Controls.Add(_activityList);
 
         Controls.Add(activityPanel);
-        Controls.Add(topPanel);
+        Controls.Add(headerCard);
 
         RefreshDisplay();
         LoadActivity();
@@ -126,14 +173,18 @@ public sealed class StatusForm : Form
         var status = ServiceManager.GetStatus();
         var settings = ConfigStore.Load();
 
-        (_statusLabel.Text, _statusLabel.ForeColor) = status switch
+        var (text, color) = status switch
         {
-            ServiceControllerStatus.Running      => ("● Running",   Color.Green),
-            ServiceControllerStatus.Stopped      => ("○ Stopped",   Color.Red),
-            ServiceControllerStatus.StartPending => ("◌ Starting…", Color.DarkOrange),
-            ServiceControllerStatus.StopPending  => ("◌ Stopping…", Color.DarkOrange),
-            _                                    => ("? Unknown",   SystemColors.GrayText),
+            ServiceControllerStatus.Running      => ("Running",    Theme.Success),
+            ServiceControllerStatus.Stopped      => ("Stopped",    Theme.Error),
+            ServiceControllerStatus.StartPending => ("Starting…",  Theme.Warning),
+            ServiceControllerStatus.StopPending  => ("Stopping…",  Theme.Warning),
+            _                                    => ("Unknown",    Theme.TextDim),
         };
+        _statusLabel.Text = text;
+        _statusLabel.ForeColor = color;
+        _statusDot.BackColor = color;
+        _statusDot.Invalidate();
 
         _portalLabel.Text = !string.IsNullOrEmpty(settings?.PortalUrl)
             ? $"Portal: {settings!.PortalUrl}"
@@ -167,7 +218,8 @@ public sealed class StatusForm : Form
         var list = (ListBox)sender!;
         var item = list.Items[e.Index];
 
-        e.DrawBackground();
+        using var bgBrush = new SolidBrush(Theme.LogBackground);
+        e.Graphics.FillRectangle(bgBrush, e.Bounds);
 
         if (item is LogTailer.LogEntry entry)
         {
@@ -181,35 +233,40 @@ public sealed class StatusForm : Form
             };
             var levelColor = entry.Level switch
             {
-                "Error" or "Fatal" => Color.FromArgb(255, 100, 100),
-                "Warning" => Color.FromArgb(255, 200, 80),
-                "Debug" or "Verbose" => DimText,
-                _ => Color.FromArgb(100, 200, 255),
+                "Error" or "Fatal" => Theme.Error,
+                "Warning" => Theme.Warning,
+                "Debug" or "Verbose" => Theme.TextDim,
+                _ => Theme.Info,
             };
 
-            var x = e.Bounds.X + 4;
+            var x = e.Bounds.X + 6;
             var y = e.Bounds.Y;
             var height = e.Bounds.Height;
 
             // Timestamp
-            TextRenderer.DrawText(e.Graphics, time, list.Font, new Rectangle(x, y, 70, height),
-                DimText, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
-            x += 72;
+            TextRenderer.DrawText(e.Graphics, time, list.Font, new Rectangle(x, y, 72, height),
+                Theme.TextDim, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+            x += 76;
 
             // Level badge
-            TextRenderer.DrawText(e.Graphics, levelTag, list.Font, new Rectangle(x, y, 32, height),
+            TextRenderer.DrawText(e.Graphics, levelTag, list.Font, new Rectangle(x, y, 34, height),
                 levelColor, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
-            x += 36;
+            x += 38;
+
+            // Separator
+            TextRenderer.DrawText(e.Graphics, "│", list.Font, new Rectangle(x, y, 14, height),
+                Theme.Border, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+            x += 16;
 
             // Message
             TextRenderer.DrawText(e.Graphics, entry.Message, list.Font,
-                new Rectangle(x, y, e.Bounds.Right - x - 4, height),
-                list.ForeColor, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
+                new Rectangle(x, y, e.Bounds.Right - x - 6, height),
+                Theme.LogText, TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.EndEllipsis);
         }
         else
         {
             TextRenderer.DrawText(e.Graphics, item.ToString(), list.Font, e.Bounds,
-                list.ForeColor, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
+                Theme.LogText, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
         }
     }
 

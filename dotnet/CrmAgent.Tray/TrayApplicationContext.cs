@@ -24,10 +24,16 @@ public sealed class TrayApplicationContext : ApplicationContext
         var headerItem = new ToolStripMenuItem("GDATA CRM Agent")
         {
             Enabled = false,
-            Font = new Font(SystemFonts.MenuFont ?? SystemFonts.DefaultFont!, FontStyle.Bold),
+            Font = Theme.SubHead,
         };
 
-        var menu = new ContextMenuStrip();
+        var menu = new ContextMenuStrip
+        {
+            BackColor = Theme.Surface,
+            ForeColor = Theme.TextPrimary,
+            ShowImageMargin = false,
+            Renderer = new DarkToolStripRenderer(),
+        };
         menu.Items.Add(headerItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(_statusMenuItem);
@@ -190,5 +196,63 @@ public sealed class TrayApplicationContext : ApplicationContext
             _notifyIcon.Dispose();
         }
         base.Dispose(disposing);
+    }
+}
+
+/// <summary>
+/// Custom renderer that paints ContextMenuStrip items with the dark theme colours.
+/// </summary>
+file sealed class DarkToolStripRenderer : ToolStripProfessionalRenderer
+{
+    public DarkToolStripRenderer() : base(new DarkColorTable()) { }
+
+    protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
+    {
+        var rect = new Rectangle(Point.Empty, e.Item.Size);
+        var color = e.Item.Selected && e.Item.Enabled ? Theme.SurfaceLight : Theme.Surface;
+        using var brush = new SolidBrush(color);
+        e.Graphics.FillRectangle(brush, rect);
+    }
+
+    protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
+    {
+        e.TextColor = e.Item.Enabled ? Theme.TextPrimary : Theme.TextDim;
+        base.OnRenderItemText(e);
+    }
+
+    protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
+    {
+        var y = e.Item.Height / 2;
+        using var pen = new Pen(Theme.Border);
+        e.Graphics.DrawLine(pen, 0, y, e.Item.Width, y);
+    }
+
+    protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
+    {
+        using var brush = new SolidBrush(Theme.Surface);
+        e.Graphics.FillRectangle(brush, e.AffectedBounds);
+    }
+
+    protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e)
+    {
+        using var pen = new Pen(Theme.Border);
+        var rect = new Rectangle(0, 0, e.AffectedBounds.Width - 1, e.AffectedBounds.Height - 1);
+        e.Graphics.DrawRectangle(pen, rect);
+    }
+
+    private sealed class DarkColorTable : ProfessionalColorTable
+    {
+        public override Color MenuBorder => Theme.Border;
+        public override Color MenuItemBorder => Color.Transparent;
+        public override Color MenuItemSelected => Theme.SurfaceLight;
+        public override Color MenuStripGradientBegin => Theme.Surface;
+        public override Color MenuStripGradientEnd => Theme.Surface;
+        public override Color MenuItemSelectedGradientBegin => Theme.SurfaceLight;
+        public override Color MenuItemSelectedGradientEnd => Theme.SurfaceLight;
+        public override Color ImageMarginGradientBegin => Theme.Surface;
+        public override Color ImageMarginGradientMiddle => Theme.Surface;
+        public override Color ImageMarginGradientEnd => Theme.Surface;
+        public override Color SeparatorDark => Theme.Border;
+        public override Color SeparatorLight => Theme.Border;
     }
 }

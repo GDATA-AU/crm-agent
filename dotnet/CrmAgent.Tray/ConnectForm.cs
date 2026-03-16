@@ -24,16 +24,50 @@ public sealed class ConnectForm : Form
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
-        Width = 540;
+        Width = 580;
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        Theme.ApplyToForm(this);
 
         _urlBox = new TextBox { Dock = DockStyle.Fill };
         _apiKeyBox = new TextBox { Dock = DockStyle.Fill, UseSystemPasswordChar = true };
         _azureBox = new TextBox { Dock = DockStyle.Fill, UseSystemPasswordChar = true };
+        Theme.StyleTextBox(_urlBox);
+        Theme.StyleTextBox(_apiKeyBox);
+        Theme.StyleTextBox(_azureBox);
+
         _testBtn = new Button { Text = "Test Connection", AutoSize = true };
+        Theme.StyleSecondary(_testBtn);
+
         _saveBtn = new Button { Text = "Save && Start Service", AutoSize = true, Enabled = false };
-        _testStatus = new Label { AutoSize = true, Text = string.Empty, Padding = new Padding(4, 6, 0, 0) };
+        Theme.StylePrimary(_saveBtn);
+
+        _testStatus = new Label
+        {
+            AutoSize = true,
+            Text = string.Empty,
+            Padding = new Padding(4, 6, 0, 0),
+            ForeColor = Theme.TextSecondary,
+        };
+
+        // -- Title --
+        var title = new Label
+        {
+            Text = "Connect to Portal",
+            Font = Theme.Heading,
+            ForeColor = Theme.TextPrimary,
+            AutoSize = true,
+            Margin = new Padding(0, 0, 0, 4),
+        };
+        var subtitle = new Label
+        {
+            Text = "Enter the credentials provided by your LGA Customer Portal administrator.",
+            Font = Theme.Small,
+            ForeColor = Theme.TextSecondary,
+            AutoSize = true,
+            MaximumSize = new Size(500, 0),
+            Margin = new Padding(0, 0, 0, 16),
+        };
 
         var layout = new TableLayoutPanel
         {
@@ -41,29 +75,61 @@ public sealed class ConnectForm : Form
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Dock = DockStyle.Fill,
-            Padding = new Padding(16),
+            Padding = new Padding(24, 20, 24, 8),
+            BackColor = Theme.Background,
         };
-        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170));
+        layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 180));
         layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
-        AddRow(layout, 0, "Portal URL:", _urlBox);
-        AddRow(layout, 1, "Agent API Key:", _apiKeyBox);
-        AddRow(layout, 2, "Azure Storage\nConnection String:", _azureBox);
+        // Title spans both columns
+        layout.Controls.Add(title, 0, 0);
+        layout.SetColumnSpan(title, 2);
+        layout.Controls.Add(subtitle, 0, 1);
+        layout.SetColumnSpan(subtitle, 2);
+
+        // Separator
+        var sep = new Panel
+        {
+            Height = 1,
+            Dock = DockStyle.Top,
+            BackColor = Theme.Border,
+            Margin = new Padding(0, 0, 0, 12),
+        };
+        layout.Controls.Add(sep, 0, 2);
+        layout.SetColumnSpan(sep, 2);
+
+        AddRow(layout, 3, "Portal URL", _urlBox);
+        AddRow(layout, 4, "Agent API Key", _apiKeyBox);
+        AddRow(layout, 5, "Azure Storage\nConnection String", _azureBox);
 
         // Test row
-        var testRow = new FlowLayoutPanel { AutoSize = true, WrapContents = false };
+        var testRow = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            WrapContents = false,
+            BackColor = Theme.Background,
+            Margin = new Padding(0, 8, 0, 0),
+        };
         testRow.Controls.Add(_testBtn);
         testRow.Controls.Add(_testStatus);
-        layout.Controls.Add(new Label(), 0, 3);
-        layout.Controls.Add(testRow, 1, 3);
+        layout.Controls.Add(new Label(), 0, 6);
+        layout.Controls.Add(testRow, 1, 6);
 
         // Separator + Save button
-        layout.Controls.Add(new Label { Height = 4 }, 0, 4);
-        layout.Controls.Add(new Label { Height = 4 }, 1, 4);
-        layout.Controls.Add(new Label(), 0, 5);
-        layout.Controls.Add(_saveBtn, 1, 5);
+        var sep2 = new Panel
+        {
+            Height = 1,
+            Dock = DockStyle.Top,
+            BackColor = Theme.Border,
+            Margin = new Padding(0, 12, 0, 12),
+        };
+        layout.Controls.Add(sep2, 0, 7);
+        layout.SetColumnSpan(sep2, 2);
+
+        layout.Controls.Add(new Label(), 0, 8);
+        layout.Controls.Add(_saveBtn, 1, 8);
         // Bottom padding row
-        layout.Controls.Add(new Label { Height = 8 }, 0, 6);
+        layout.Controls.Add(new Label { Height = 12 }, 0, 9);
 
         Controls.Add(layout);
 
@@ -80,14 +146,17 @@ public sealed class ConnectForm : Form
         _saveBtn.Click += OnSave;
     }
 
-    private static void AddRow(TableLayoutPanel layout, int row, string labelText, Control control)
+    private void AddRow(TableLayoutPanel layout, int row, string labelText, Control control)
     {
-        layout.Controls.Add(new Label
+        var label = new Label
         {
             Text = labelText,
             TextAlign = ContentAlignment.MiddleRight,
             Dock = DockStyle.Fill,
-        }, 0, row);
+            ForeColor = Theme.TextSecondary,
+            Font = Theme.Body,
+        };
+        layout.Controls.Add(label, 0, row);
         layout.Controls.Add(control, 1, row);
     }
 
@@ -96,7 +165,7 @@ public sealed class ConnectForm : Form
         _testBtn.Enabled = false;
         _saveBtn.Enabled = false;
         _testStatus.Text = "Testing…";
-        _testStatus.ForeColor = SystemColors.GrayText;
+        _testStatus.ForeColor = Theme.TextSecondary;
 
         var url = _urlBox.Text.Trim().TrimEnd('/');
         var key = _apiKeyBox.Text.Trim();
@@ -104,7 +173,7 @@ public sealed class ConnectForm : Form
         if (string.IsNullOrEmpty(url) || !Uri.IsWellFormedUriString(url, UriKind.Absolute))
         {
             _testStatus.Text = "✗ Enter a valid URL.";
-            _testStatus.ForeColor = Color.Red;
+            _testStatus.ForeColor = Theme.Error;
             _testBtn.Enabled = true;
             return;
         }
@@ -118,25 +187,25 @@ public sealed class ConnectForm : Form
             if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
             {
                 _testStatus.Text = "✗ Invalid API key.";
-                _testStatus.ForeColor = Color.Red;
+                _testStatus.ForeColor = Theme.Error;
             }
             else if (!response.IsSuccessStatusCode)
             {
                 _testStatus.Text = $"✗ Server error ({(int)response.StatusCode}).";
-                _testStatus.ForeColor = Color.Red;
+                _testStatus.ForeColor = Theme.Error;
             }
             else
             {
                 // 200 (job available), 204 (no jobs) — both confirm auth succeeded
                 _testStatus.Text = "✓ Connected.";
-                _testStatus.ForeColor = Color.Green;
+                _testStatus.ForeColor = Theme.Success;
                 _saveBtn.Enabled = true;
             }
         }
         catch (Exception ex)
         {
             _testStatus.Text = $"✗ {ex.Message}";
-            _testStatus.ForeColor = Color.Red;
+            _testStatus.ForeColor = Theme.Error;
         }
         finally
         {
