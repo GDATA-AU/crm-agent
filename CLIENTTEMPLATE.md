@@ -2,6 +2,6 @@
 
 **What Happened?** - Briefly describe the issue.
 
-**Steps to Recreate the Issue** - Explain how the issue has occured.
+**Steps to Recreate the Issue** - Explain how the issue has occurred.
 
 **Any Additional Information** - Please provide any additional information for example error messages and screenshots. 
