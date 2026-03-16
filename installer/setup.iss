@@ -161,6 +161,8 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssInstall then
   begin
+    // Kill the tray app so its files can be replaced during upgrades
+    KillTrayApp();
     // Remove any existing service before overwriting files
     StopAndDeleteService();
   end;
