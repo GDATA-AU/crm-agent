@@ -18,7 +18,7 @@
     <Property Id="ARPPRODUCTICON" Value="TrayExeIcon" />
     <Property Id="ARPHELPLINK" Value="https://gdata.com.au" />
     <Property Id="ARPURLINFOABOUT" Value="https://gdata.com.au" />
-    <Icon Id="TrayExeIcon" SourceFile="$(var.ProjectDir)\..\dotnet\CrmAgent.Tray\app.ico" />
+    <Icon Id="TrayExeIcon" SourceFile="$(var.ProjectDir)\..\..\dotnet\CrmAgent.Tray\app.ico" />
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="GDATA CRM Agent">
