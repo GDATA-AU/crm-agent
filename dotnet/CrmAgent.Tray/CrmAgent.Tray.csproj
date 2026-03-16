@@ -8,6 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>CrmAgentTray</AssemblyName>
     <RootNamespace>CrmAgent.Tray</RootNamespace>
+    <ApplicationIcon>app.ico</ApplicationIcon>
     <!-- Allows cross-compiling the Windows target from non-Windows (e.g. Linux dev containers) -->
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>

@@ -1,5 +1,4 @@
 using System.ServiceProcess;
-using System.Runtime.InteropServices;
 
 namespace CrmAgent.Tray;
 
@@ -11,9 +10,6 @@ namespace CrmAgent.Tray;
 /// </summary>
 public sealed class TrayApplicationContext : ApplicationContext
 {
-    [DllImport("user32.dll")]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool DestroyIcon(IntPtr hIcon);
 
     private readonly NotifyIcon _notifyIcon;
     private readonly ToolStripMenuItem _statusMenuItem;
@@ -42,7 +38,7 @@ public sealed class TrayApplicationContext : ApplicationContext
 
         _notifyIcon = new NotifyIcon
         {
-            Icon = LoadTrayIcon(),
+            Icon = LoadAppIcon(),
             Text = "GDATA CRM Agent",
             Visible = true,
             ContextMenuStrip = menu,
@@ -123,41 +119,26 @@ public sealed class TrayApplicationContext : ApplicationContext
     }
 
     /// <summary>
-    /// Renders the ⚡ HIGH VOLTAGE emoji (U+26A1) from Segoe UI Emoji at 32×32
-    /// and converts the bitmap to an <see cref="Icon"/> for the system tray.
-    /// Falls back to the generic application icon if the font is unavailable.
+    /// Loads the application icon embedded in the executable by the
+    /// &lt;ApplicationIcon&gt; build property. Falls back to the generic
+    /// application icon if the resource is missing.
     /// </summary>
-    private static Icon LoadTrayIcon()
+    internal static Icon LoadAppIcon()
     {
-        const int size = 32;
-        const string lightning = "⚡";
-
         try
         {
-            using var bmp = new Bitmap(size, size);
-            using var g = Graphics.FromImage(bmp);
-            g.Clear(Color.Transparent);
-            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
-
-            using var font = new Font("Segoe UI Emoji", size * 0.72f, GraphicsUnit.Pixel);
-            var sf = new StringFormat
+            // Icon.ExtractAssociatedIcon pulls the first icon group resource
+            // embedded in the exe (set via <ApplicationIcon> in the .csproj).
+            var exePath = Environment.ProcessPath;
+            if (exePath is not null)
             {
-                Alignment = StringAlignment.Center,
-                LineAlignment = StringAlignment.Center,
-            };
-            g.DrawString(lightning, font, Brushes.White, new RectangleF(0, 0, size, size), sf);
-
-            // Convert Bitmap → Icon. Clone so the native HICON can be freed.
-            var hIcon = bmp.GetHicon();
-            using var temp = Icon.FromHandle(hIcon);
-            var icon = (Icon)temp.Clone();
-            DestroyIcon(hIcon);
-            return icon;
+                var icon = Icon.ExtractAssociatedIcon(exePath);
+                if (icon is not null)
+                    return icon;
+            }
         }
-        catch
-        {
-            return SystemIcons.Application;
-        }
+        catch { /* fall through */ }
+        return SystemIcons.Application;
     }
 
     protected override void Dispose(bool disposing)

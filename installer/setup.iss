@@ -36,6 +36,7 @@ PrivilegesRequired=admin
 ; Minimum Windows 10
 MinVersion=10.0
 WizardStyle=modern
+SetupIconFile=..\dotnet\CrmAgent.Tray\app.ico
 ; Allow upgrade installs (same AppId)
 CloseApplications=yes
 RestartIfNeededByRun=no

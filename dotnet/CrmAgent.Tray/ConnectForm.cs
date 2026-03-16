@@ -19,6 +19,7 @@ public sealed class ConnectForm : Form
     public ConnectForm()
     {
         Text = "GDATA CRM Agent – Setup";
+        Icon = TrayApplicationContext.LoadAppIcon();
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;

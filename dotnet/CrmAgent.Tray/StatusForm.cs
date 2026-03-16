@@ -19,6 +19,7 @@ public sealed class StatusForm : Form
     public StatusForm()
     {
         Text = "GDATA CRM Agent";
+        Icon = TrayApplicationContext.LoadAppIcon();
         FormBorderStyle = FormBorderStyle.FixedToolWindow;
         StartPosition = FormStartPosition.Manual;
         Width = 380;
