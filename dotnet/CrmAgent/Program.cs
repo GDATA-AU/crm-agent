@@ -24,10 +24,21 @@ try
     builder.Configuration.AddJsonFile(programDataConfig, optional: true, reloadOnChange: false);
 
     // Serilog
+    var logDirectory = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+        "GDATA CRM Agent",
+        "logs");
     builder.Services.AddSerilog((services, cfg) => cfg
         .ReadFrom.Configuration(builder.Configuration)
         .ReadFrom.Services(services)
-        .WriteTo.Console(new Serilog.Formatting.Json.JsonFormatter()));
+        .WriteTo.Console(new Serilog.Formatting.Json.JsonFormatter())
+        .WriteTo.File(
+            new Serilog.Formatting.Json.JsonFormatter(),
+            Path.Combine(logDirectory, "agent.log"),
+            rollingInterval: RollingInterval.Day,
+            retainedFileCountLimit: 7,
+            shared: true,
+            flushToDiskInterval: TimeSpan.FromSeconds(1)));
 
     // Windows Service support — no-op on Linux, enables SCM integration on Windows.
     builder.Services.AddWindowsService(options =>
