@@ -5,3 +5,5 @@ dist/
 publish/
 publish-tray/
 CrmAgent-win-x64.zip
+installer/msi/bin/
+installer/msi/obj/

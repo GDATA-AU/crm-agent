@@ -1,0 +1,12 @@
+<Project Sdk="WixToolset.Sdk/4.0.5">
+  <PropertyGroup>
+    <OutputName>crm-agent-installer</OutputName>
+    <OutputType>Package</OutputType>
+    <InstallerPlatform>x64</InstallerPlatform>
+
+    <!-- Paths are relative to this project file. -->
+    <PublishDir>..\..\publish</PublishDir>
+    <TrayPublishDir>..\..\publish-tray</TrayPublishDir>
+    <DefineConstants>PublishDir=$(PublishDir);TrayPublishDir=$(TrayPublishDir)</DefineConstants>
+  </PropertyGroup>
+</Project>

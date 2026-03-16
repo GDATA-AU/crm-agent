@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package
+    Name="LGA CRM Agent"
+    Manufacturer="GDATA-AU"
+    Version="1.0.0"
+    UpgradeCode="A3F6B2D1-4C8E-4F2A-9D3B-7E1C5A0F8B2D"
+    InstallerVersion="500"
+    Language="1033"
+    Scope="perMachine"
+    Compressed="yes">
+
+    <SummaryInformation Description="LGA CRM Agent" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="LGA CRM Agent">
+        <Directory Id="TRAYFOLDER" Name="tray" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="CommonAppDataFolder">
+      <Directory Id="PROGRAMDATADIR" Name="LGA CRM Agent" />
+    </StandardDirectory>
+
+    <Feature Id="MainFeature" Title="LGA CRM Agent" Level="1">
+      <ComponentGroupRef Id="ServiceFiles" />
+      <ComponentGroupRef Id="TrayFiles" />
+      <ComponentRef Id="ProgramDataPermissionsComponent" />
+      <ComponentRef Id="RunKeyComponent" />
+      <ComponentRef Id="ProgramDataCleanupComponent" />
+    </Feature>
+
+    <!--
+      Keep service recovery behavior aligned with setup.iss:
+      restart/10s, restart/30s, restart/60s.
+    -->
+    <CustomAction
+      Id="SetServiceRecoveryActions"
+      Directory="SystemFolder"
+      Execute="deferred"
+      Impersonate="no"
+      ExeCommand='[SystemFolder]sc.exe failure gdata-agent reset= 86400 actions= restart/10000/restart/30000/restart/60000'
+      Return="ignore" />
+
+    <!--
+      Match existing behavior: allow logged-in users to update ProgramData config.
+      S-1-5-32-545 is the well-known SID for the built-in Users group.
+    -->
+    <CustomAction
+      Id="GrantProgramDataPermissions"
+      Directory="SystemFolder"
+      Execute="deferred"
+      Impersonate="no"
+      ExeCommand='[SystemFolder]icacls.exe "[CommonAppDataFolder]LGA CRM Agent" /grant *S-1-5-32-545:(OI)(CI)M /T /Q'
+      Return="ignore" />
+
+    <!-- Close tray app on uninstall so files can be removed. -->
+    <CustomAction
+      Id="KillTrayOnUninstall"
+      Directory="SystemFolder"
+      Execute="deferred"
+      Impersonate="no"
+      ExeCommand='[SystemFolder]taskkill.exe /F /IM CrmAgentTray.exe'
+      Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="SetServiceRecoveryActions" After="InstallServices">NOT REMOVE="ALL"</Custom>
+      <Custom Action="GrantProgramDataPermissions" After="InstallFiles">NOT REMOVE="ALL"</Custom>
+      <Custom Action="KillTrayOnUninstall" Before="StopServices">REMOVE="ALL"</Custom>
+    </InstallExecuteSequence>
+  </Package>
+
+  <Fragment>
+    <ComponentGroup Id="ServiceFiles" Directory="INSTALLFOLDER">
+      <Component Id="ServiceExeComponent" Guid="*">
+        <File Id="ServiceExeFile" Source="$(var.PublishDir)\CrmAgent.exe" KeyPath="yes" />
+        <ServiceInstall
+          Id="InstallWindowsService"
+          Name="gdata-agent"
+          DisplayName="LGA CRM Agent"
+          Description="Polls the council portal for extraction jobs and writes results to Azure Blob Storage."
+          Type="ownProcess"
+          Start="auto"
+          ErrorControl="normal"
+          Vital="yes" />
+        <ServiceControl
+          Id="ControlWindowsService"
+          Name="gdata-agent"
+          Stop="both"
+          Remove="uninstall"
+          Wait="yes" />
+      </Component>
+
+      <Files Include="$(var.PublishDir)\**" Exclude="$(var.PublishDir)\CrmAgent.exe" />
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="TrayFiles" Directory="TRAYFOLDER">
+      <Files Include="$(var.TrayPublishDir)\**" />
+    </ComponentGroup>
+  </Fragment>
+
+  <Fragment>
+    <Component Id="ProgramDataPermissionsComponent" Directory="PROGRAMDATADIR" Guid="*">
+      <CreateFolder />
+      <RegistryValue
+        Root="HKLM"
+        Key="SOFTWARE\GDATA-AU\LGA CRM Agent"
+        Name="ProgramDataInitialized"
+        Type="integer"
+        Value="1"
+        KeyPath="yes" />
+    </Component>
+
+    <Component Id="RunKeyComponent" Directory="INSTALLFOLDER" Guid="*">
+      <RegistryValue
+        Root="HKLM"
+        Key="SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+        Name="LGACrmAgent"
+        Type="string"
+        Value="&quot;[TRAYFOLDER]CrmAgentTray.exe&quot;"
+        KeyPath="yes" />
+    </Component>
+
+    <!--
+      Remove ProgramData config directory (contains credentials) during uninstall.
+      This mirrors the setup.iss usPostUninstall cleanup.
+    -->
+    <Component Id="ProgramDataCleanupComponent" Directory="PROGRAMDATADIR" Guid="*" Permanent="no" Transitive="yes">
+      <RemoveFolder Id="RemoveProgramDataFolder" Directory="PROGRAMDATADIR" On="uninstall" />
+      <RegistryValue
+        Root="HKLM"
+        Key="SOFTWARE\GDATA-AU\LGA CRM Agent"
+        Name="ProgramDataCleanup"
+        Type="integer"
+        Value="1"
+        KeyPath="yes" />
+    </Component>
+  </Fragment>
+</Wix>
