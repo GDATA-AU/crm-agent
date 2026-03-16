@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package
-    Name="LGA CRM Agent"
+    Name="GDATA CRM Agent"
     Manufacturer="GDATA-AU"
     Version="1.0.0"
     UpgradeCode="A3F6B2D1-4C8E-4F2A-9D3B-7E1C5A0F8B2D"
@@ -10,21 +10,27 @@
     Scope="perMachine"
     Compressed="yes">
 
-    <SummaryInformation Description="LGA CRM Agent" />
+    <SummaryInformation Description="GDATA CRM Agent" />
     <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
     <MediaTemplate EmbedCab="yes" />
 
+    <!-- Control Panel / Apps entry metadata -->
+    <Property Id="ARPPRODUCTICON" Value="TrayExeIcon" />
+    <Property Id="ARPHELPLINK" Value="https://gdata.com.au" />
+    <Property Id="ARPURLINFOABOUT" Value="https://gdata.com.au" />
+    <Icon Id="TrayExeIcon" SourceFile="$(var.TrayPublishDir)\CrmAgentTray.exe" />
+
     <StandardDirectory Id="ProgramFiles64Folder">
-      <Directory Id="INSTALLFOLDER" Name="LGA CRM Agent">
+      <Directory Id="INSTALLFOLDER" Name="GDATA CRM Agent">
         <Directory Id="TRAYFOLDER" Name="tray" />
       </Directory>
     </StandardDirectory>
 
     <StandardDirectory Id="CommonAppDataFolder">
-      <Directory Id="PROGRAMDATADIR" Name="LGA CRM Agent" />
+      <Directory Id="PROGRAMDATADIR" Name="GDATA CRM Agent" />
     </StandardDirectory>
 
-    <Feature Id="MainFeature" Title="LGA CRM Agent" Level="1">
+    <Feature Id="MainFeature" Title="GDATA CRM Agent" Level="1">
       <ComponentGroupRef Id="ServiceFiles" />
       <ComponentGroupRef Id="HarvestedServiceFiles" />
       <ComponentGroupRef Id="HarvestedTrayFiles" />
@@ -53,7 +59,7 @@
       Directory="SystemFolder"
       Execute="deferred"
       Impersonate="no"
-      ExeCommand='[SystemFolder]icacls.exe "[CommonAppDataFolder]LGA CRM Agent" /grant *S-1-5-32-545:(OI)(CI)M /T /Q'
+      ExeCommand='[SystemFolder]icacls.exe "[CommonAppDataFolder]GDATA CRM Agent" /grant *S-1-5-32-545:(OI)(CI)M /T /Q'
       Return="ignore" />
 
     <!-- Close tray app on uninstall so files can be removed. -->
@@ -66,7 +72,7 @@
       Return="ignore" />
 
     <!--
-      Force-remove ProgramData\LGA CRM Agent on uninstall (contains runtime
+      Force-remove ProgramData\GDATA CRM Agent on uninstall (contains runtime
       config/credentials). RemoveFolder only deletes empty dirs, so we use
       rmdir /s /q to match the Inno Setup's DelTree behavior.
     -->
@@ -75,7 +81,7 @@
       Directory="SystemFolder"
       Execute="deferred"
       Impersonate="no"
-      ExeCommand='[SystemFolder]cmd.exe /c rmdir /s /q "[CommonAppDataFolder]LGA CRM Agent"'
+      ExeCommand='[SystemFolder]cmd.exe /c rmdir /s /q "[CommonAppDataFolder]GDATA CRM Agent"'
       Return="ignore" />
 
     <!-- Launch the tray app after install so the user can enter credentials. -->
@@ -101,7 +107,7 @@
         <ServiceInstall
           Id="InstallWindowsService"
           Name="gdata-agent"
-          DisplayName="LGA CRM Agent"
+          DisplayName="GDATA CRM Agent"
           Description="Polls the council portal for extraction jobs and writes results to Azure Blob Storage."
           Type="ownProcess"
           Start="auto"
@@ -131,7 +137,7 @@
       <CreateFolder />
       <RegistryValue
         Root="HKLM"
-        Key="SOFTWARE\GDATA-AU\LGA CRM Agent"
+        Key="SOFTWARE\GDATA-AU\GDATA CRM Agent"
         Name="ProgramDataInitialized"
         Type="integer"
         Value="1"

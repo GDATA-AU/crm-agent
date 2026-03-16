@@ -35,12 +35,12 @@ Expected output:
 
 ## Current parity mapping
 
-- Installs service binaries to `Program Files\LGA CRM Agent`
-- Installs tray binaries to `Program Files\LGA CRM Agent\tray`
+- Installs service binaries to `Program Files\GDATA CRM Agent`
+- Installs tray binaries to `Program Files\GDATA CRM Agent\tray`
 - Registers Windows service `gdata-agent` (auto start, removed on uninstall)
 - Applies service recovery settings via `sc.exe failure ...`
 - Creates HKLM Run entry for tray app (`LGACrmAgent`)
-- Grants Modify access to `ProgramData\LGA CRM Agent` for built-in Users group
+- Grants Modify access to `ProgramData\GDATA CRM Agent` for built-in Users group
 - Kills tray process on uninstall
 - Removes ProgramData folder on uninstall
 
