@@ -144,6 +144,12 @@ begin
     'failure {#ServiceName} reset= 86400 actions= restart/10000/restart/30000/restart/60000',
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
+  // Grant Interactive Users the ability to start and stop the service so the
+  // tray app can control it without requiring admin elevation.
+  Exec('sc.exe',
+    'sdset {#ServiceName} D:(A;;CCLCSWRPWPDTLOCRRC;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCSWRPWPLOCRRC;;;IU)(A;;CCLCSWLOCRRC;;;SU)',
+    '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+
   // Service is intentionally left Stopped here.
   // It will be started by the tray app once the user saves valid credentials.
 end;

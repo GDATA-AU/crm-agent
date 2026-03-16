@@ -43,6 +43,10 @@ public static class ServiceManager
         {
             RunElevated("sc.exe", $"start {ServiceName}");
         }
+        catch (InvalidOperationException) when (IsAccessDenied())
+        {
+            RunElevated("sc.exe", $"start {ServiceName}");
+        }
     }
 
     public static void Stop()
@@ -60,12 +64,32 @@ public static class ServiceManager
         {
             RunElevated("sc.exe", $"stop {ServiceName}");
         }
+        catch (InvalidOperationException) when (IsAccessDenied())
+        {
+            RunElevated("sc.exe", $"stop {ServiceName}");
+        }
     }
 
     public static void Restart()
     {
         Stop();
         Start();
+    }
+
+    /// <summary>
+    /// Returns true when the current user lacks permission to open the service handle.
+    /// Used as a filter for <see cref="InvalidOperationException"/> thrown by
+    /// <see cref="ServiceController.Status"/> before Start/Stop is even attempted.
+    /// </summary>
+    private static bool IsAccessDenied()
+    {
+        try
+        {
+            using var sc = new ServiceController(ServiceName);
+            _ = sc.Status;
+            return false;
+        }
+        catch { return true; }
     }
 
     private static void RunElevated(string fileName, string arguments)
