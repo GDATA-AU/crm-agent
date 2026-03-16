@@ -34,6 +34,8 @@ public sealed class TrayApplicationContext : ApplicationContext
         menu.Items.Add("Configure…", null, (_, _) => ShowConnectForm());
         menu.Items.Add("Open Log Folder", null, (_, _) => OpenLogFolder());
         menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add("Uninstall…", null, (_, _) => ConfirmAndUninstall());
+        menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Exit", null, (_, _) => Exit());
 
         _notifyIcon = new NotifyIcon
@@ -109,6 +111,32 @@ public sealed class TrayApplicationContext : ApplicationContext
         var path = ConfigStore.ConfigDirectory;
         if (Directory.Exists(path))
             System.Diagnostics.Process.Start("explorer.exe", path);
+    }
+
+    private void ConfirmAndUninstall()
+    {
+        var result = MessageBox.Show(
+            "Are you sure you want to uninstall GDATA CRM Agent?\n\nThis will stop the service and remove the application.",
+            "Uninstall GDATA CRM Agent",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Warning,
+            MessageBoxDefaultButton.Button2);
+
+        if (result != DialogResult.Yes)
+            return;
+
+        if (!ServiceManager.LaunchUninstaller())
+        {
+            MessageBox.Show(
+                "Could not find the uninstaller. Please use 'Add or Remove Programs' in Windows Settings instead.",
+                "Uninstall",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+            return;
+        }
+
+        // The uninstaller will kill this process, but exit gracefully just in case.
+        Exit();
     }
 
     private void Exit()
