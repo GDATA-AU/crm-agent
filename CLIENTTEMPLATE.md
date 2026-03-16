@@ -4,4 +4,4 @@
 
 **Steps to Recreate the Issue** - Explain how the issue has occurred.
 
-**Any Additional Information** - Please provide any additional information for example error messages and screenshots. 
+**Any Additional Information** - Please provide any additional information, for example error messages and screenshots.
