@@ -31,7 +31,7 @@ dotnet build installer/msi/CrmAgent.Installer.wixproj -c Release
 
 Expected output:
 
-- `installer/msi/bin/Release/crm-agent-installer.msi`
+- `installer/msi/bin/Release/gdata-crm-agent-installer.msi`
 
 ## Current parity mapping
 
