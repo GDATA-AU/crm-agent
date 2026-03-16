@@ -20,13 +20,12 @@ public sealed class ConnectForm : Form
     {
         Text = "GDATA CRM Agent – Setup";
         Icon = TrayApplicationContext.LoadAppIcon();
-        FormBorderStyle = FormBorderStyle.FixedDialog;
+        FormBorderStyle = FormBorderStyle.Sizable;
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
-        Width = 580;
-        AutoSize = true;
-        AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        MinimumSize = new Size(480, 300);
+        Size = new Size(580, 380);
         Theme.ApplyToForm(this);
 
         _urlBox = new TextBox { Dock = DockStyle.Fill };
