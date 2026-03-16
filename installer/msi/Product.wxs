@@ -4,7 +4,7 @@
   <Package
     Name="GDATA CRM Agent"
     Manufacturer="GDATA-AU"
-    Version="1.0.0"
+    Version="$(var.PackageVersion)"
     UpgradeCode="A3F6B2D1-4C8E-4F2A-9D3B-7E1C5A0F8B2D"
     InstallerVersion="500"
     Language="1033"
@@ -12,7 +12,8 @@
     Compressed="yes">
 
     <SummaryInformation Description="GDATA CRM Agent" />
-    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed."
+                  AllowSameVersionUpgrades="yes" />
     <MediaTemplate EmbedCab="yes" />
 
     <!-- Control Panel / Apps entry metadata -->

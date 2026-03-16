@@ -44,8 +44,17 @@ jobs:
       - name: Publish tray binaries
         run: dotnet publish dotnet/CrmAgent.Tray/CrmAgent.Tray.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish-tray
 
+      - name: Compute version
+        id: version
+        shell: pwsh
+        run: |
+          # 1.0.<run_number> gives a unique, always-incrementing version per build
+          $ver = "1.0.${{ github.run_number }}"
+          "version=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "Package version: $ver"
+
       - name: Build MSI
-        run: dotnet build installer/msi/CrmAgent.Installer.wixproj -c Release
+        run: dotnet build installer/msi/CrmAgent.Installer.wixproj -c Release -p:PackageVersion=${{ steps.version.outputs.version }}
 
       - name: Locate MSI output
         id: find_msi
