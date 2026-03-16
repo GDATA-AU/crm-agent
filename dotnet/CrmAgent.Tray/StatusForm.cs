@@ -21,15 +21,11 @@ public sealed class StatusForm : Form
         Text = "GDATA CRM Agent";
         Icon = TrayApplicationContext.LoadAppIcon();
         FormBorderStyle = FormBorderStyle.FixedToolWindow;
-        StartPosition = FormStartPosition.Manual;
+        StartPosition = FormStartPosition.CenterScreen;
         Width = 380;
         AutoSize = true;
         AutoSizeMode = AutoSizeMode.GrowAndShrink;
         TopMost = true;
-
-        // Anchor near the system tray (bottom-right of working area)
-        var area = Screen.PrimaryScreen?.WorkingArea ?? new Rectangle(0, 0, 1920, 1040);
-        Location = new Point(area.Right - Width - 20, area.Bottom - 180);
 
         _statusLabel = new Label
         {
