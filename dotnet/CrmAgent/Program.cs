@@ -19,7 +19,7 @@ try
     // need to edit files inside Program Files.
     var programDataConfig = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-        "LGA CRM Agent",
+        "GDATA CRM Agent",
         "appsettings.json");
     builder.Configuration.AddJsonFile(programDataConfig, optional: true, reloadOnChange: false);
 

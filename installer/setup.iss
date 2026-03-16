@@ -1,4 +1,4 @@
-; setup.iss — Inno Setup installer script for LGA CRM Agent
+; setup.iss — Inno Setup installer script for GDATA CRM Agent
 ;
 ; Prerequisites:
 ;   1. Inno Setup 6.x installed (https://jrsoftware.org/isinfo.php)
@@ -9,7 +9,7 @@
 ;
 ; Output: installer\Output\crm-agent-setup.exe
 
-#define AppName    "LGA CRM Agent"
+#define AppName    "GDATA CRM Agent"
 #define AppVersion "1.0.0"
 #define AppPublisher "GDATA-AU"
 #define ServiceName "gdata-agent"
@@ -67,7 +67,7 @@ Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Run"; \
 
 [Run]
 ; Launch the tray app after installation. On first run it detects no config and opens the setup form.
-Filename: "{app}\tray\{#TrayExeName}"; Description: "Launch LGA CRM Agent"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\tray\{#TrayExeName}"; Description: "Launch GDATA CRM Agent"; Flags: nowait postinstall skipifsilent
 
 [Code]
 
@@ -103,7 +103,7 @@ procedure DeleteProgramDataDir();
 var
   Dir: String;
 begin
-  Dir := ExpandConstant('{commonappdata}\LGA CRM Agent');
+  Dir := ExpandConstant('{commonappdata}\GDATA CRM Agent');
   if DirExists(Dir) then
     DelTree(Dir, True, True, True);
 end;
@@ -115,7 +115,7 @@ var
   Dir: String;
   ResultCode: Integer;
 begin
-  Dir := ExpandConstant('{commonappdata}\LGA CRM Agent');
+  Dir := ExpandConstant('{commonappdata}\GDATA CRM Agent');
   if not DirExists(Dir) then
     CreateDir(Dir);
   // S-1-5-32-545 is the well-known SID for the built-in Users group (locale-independent)
@@ -133,7 +133,7 @@ begin
   ExePath := ExpandConstant('{app}\{#ExeName}');
 
   Exec('sc.exe',
-    'create {#ServiceName} binPath= "\"' + ExePath + '\"" start= auto DisplayName= "LGA CRM Agent"',
+    'create {#ServiceName} binPath= "\"' + ExePath + '\"" start= auto DisplayName= "GDATA CRM Agent"',
     '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
   Exec('sc.exe',
