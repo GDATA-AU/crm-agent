@@ -15,6 +15,7 @@ public sealed class TrayApplicationContext : ApplicationContext
     private readonly ToolStripMenuItem _statusMenuItem;
     private readonly System.Windows.Forms.Timer _pollTimer;
     private StatusForm? _statusForm;
+    private ConnectForm? _connectForm;
 
     public TrayApplicationContext()
     {
@@ -101,9 +102,21 @@ public sealed class TrayApplicationContext : ApplicationContext
 
     private void ShowConnectForm()
     {
-        using var f = new ConnectForm();
-        f.ShowDialog();
-        RefreshStatus();
+        if (_connectForm is { Visible: true })
+        {
+            _connectForm.BringToFront();
+            _connectForm.Activate();
+            return;
+        }
+
+        _connectForm = new ConnectForm();
+        _connectForm.FormClosed += (_, _) =>
+        {
+            _connectForm.Dispose();
+            _connectForm = null;
+            RefreshStatus();
+        };
+        _connectForm.Show();
     }
 
     private static void OpenLogFolder()
