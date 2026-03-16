@@ -19,8 +19,8 @@ dotnet tool install --global wix
 1. Publish service and tray binaries:
 
 ```powershell
-dotnet publish dotnet/CrmAgent -c Release -r win-x64 --self-contained -o publish
-dotnet publish dotnet/CrmAgent.Tray -c Release -r win-x64 --self-contained -o publish-tray
+dotnet publish dotnet/CrmAgent -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
+dotnet publish dotnet/CrmAgent.Tray -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish-tray
 ```
 
 2. Build MSI:
@@ -47,5 +47,6 @@ Expected output:
 ## Notes
 
 - This is a practical scaffold intended to be iterated with validation on a Windows VM.
+- This installer currently expects single-file publish outputs.
 - If your code-signing pipeline is ready, add signing in CI for both MSI and binaries.
 - If you want an "Launch tray app" checkbox on final dialog, add `WixToolset.UI.wixext` and an exit dialog action.

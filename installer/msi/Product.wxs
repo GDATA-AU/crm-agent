@@ -66,9 +66,9 @@
       Return="ignore" />
 
     <InstallExecuteSequence>
-      <Custom Action="SetServiceRecoveryActions" After="InstallServices">NOT REMOVE="ALL"</Custom>
-      <Custom Action="GrantProgramDataPermissions" After="InstallFiles">NOT REMOVE="ALL"</Custom>
-      <Custom Action="KillTrayOnUninstall" Before="StopServices">REMOVE="ALL"</Custom>
+      <Custom Action="SetServiceRecoveryActions" After="InstallServices" Condition="NOT REMOVE=&quot;ALL&quot;" />
+      <Custom Action="GrantProgramDataPermissions" After="InstallFiles" Condition="NOT REMOVE=&quot;ALL&quot;" />
+      <Custom Action="KillTrayOnUninstall" Before="StopServices" Condition="REMOVE=&quot;ALL&quot;" />
     </InstallExecuteSequence>
   </Package>
 
@@ -93,13 +93,23 @@
           Wait="yes" />
       </Component>
 
-      <Files Include="$(var.PublishDir)\**" Exclude="$(var.PublishDir)\CrmAgent.exe" />
+      <!-- Included explicitly to match single-file publish output. -->
+      <Component Id="ServiceAppSettingsComponent" Guid="*">
+        <File Id="ServiceAppSettingsFile" Source="$(var.PublishDir)\appsettings.json" KeyPath="yes" />
+      </Component>
+
+      <Component Id="ServiceDevSettingsComponent" Guid="*">
+        <File Id="ServiceDevSettingsFile" Source="$(var.PublishDir)\appsettings.Development.json" KeyPath="yes" />
+      </Component>
     </ComponentGroup>
   </Fragment>
 
   <Fragment>
     <ComponentGroup Id="TrayFiles" Directory="TRAYFOLDER">
-      <Files Include="$(var.TrayPublishDir)\**" />
+      <!-- Included explicitly to match single-file publish output. -->
+      <Component Id="TrayExeComponent" Guid="*">
+        <File Id="TrayExeFile" Source="$(var.TrayPublishDir)\CrmAgentTray.exe" KeyPath="yes" />
+      </Component>
     </ComponentGroup>
   </Fragment>
 
