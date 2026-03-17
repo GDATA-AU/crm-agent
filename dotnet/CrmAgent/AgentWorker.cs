@@ -62,6 +62,22 @@ public sealed class AgentWorker : BackgroundService
 
             _logger.LogInformation("Job received: {JobId} type={JobType}", job.Id, job.Type);
 
+            // Ping jobs are heartbeat checks from the portal. They are marked
+            // completed immediately with no handler execution or blob output.
+            if (job.Type == JobType.Ping)
+            {
+                _logger.LogInformation("Ping job received: {JobId} - completing immediately", job.Id);
+
+                await _portal.ReportJobStatusAsync(job.Id, new JobStatusUpdate
+                {
+                    Status = JobStatus.Completed,
+                }, stoppingToken);
+
+                _logger.LogInformation("Ping job completed: {JobId}", job.Id);
+                await WaitAsync(stoppingToken);
+                continue;
+            }
+
             // ---------------------------------------------------------------
             // Report "running"
             // ---------------------------------------------------------------

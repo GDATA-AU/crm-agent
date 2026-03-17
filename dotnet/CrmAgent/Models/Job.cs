@@ -14,6 +14,9 @@ public enum JobType
 
     [JsonStringEnumMemberName("rest-api")]
     RestApi,
+
+    [JsonStringEnumMemberName("ping")]
+    Ping,
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<JobStatus>))]
