@@ -24,8 +24,8 @@ public sealed class ConnectForm : Form
         MaximizeBox = false;
         MinimizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
-        MinimumSize = new Size(480, 300);
-        Size = new Size(580, 380);
+        MinimumSize = new Size(480, 420);
+        Size = new Size(580, 460);
         Theme.ApplyToForm(this);
 
         _urlBox = new TextBox { Dock = DockStyle.Fill };
