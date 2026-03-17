@@ -254,24 +254,24 @@ public sealed class StatusForm : Form
                 _ => Theme.Info,
             };
 
-            var x = e.Bounds.X + 6;
+            var x = e.Bounds.X + 10;
             var y = e.Bounds.Y;
             var height = e.Bounds.Height;
 
             // Timestamp
-            TextRenderer.DrawText(e.Graphics, time, list.Font, new Rectangle(x, y, 72, height),
+            TextRenderer.DrawText(e.Graphics, time, list.Font, new Rectangle(x, y, 80, height),
                 Theme.TextDim, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
-            x += 76;
+            x += 88;
 
             // Level badge
-            TextRenderer.DrawText(e.Graphics, levelTag, list.Font, new Rectangle(x, y, 34, height),
+            TextRenderer.DrawText(e.Graphics, levelTag, list.Font, new Rectangle(x, y, 38, height),
                 levelColor, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
-            x += 38;
+            x += 48;
 
             // Separator
             TextRenderer.DrawText(e.Graphics, "│", list.Font, new Rectangle(x, y, 14, height),
                 Theme.Border, TextFormatFlags.Left | TextFormatFlags.VerticalCenter);
-            x += 16;
+            x += 24;
 
             // Message
             TextRenderer.DrawText(e.Graphics, entry.Message, list.Font,
