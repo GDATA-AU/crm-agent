@@ -96,6 +96,19 @@ public sealed class LogTailer
                        ?? node["MessageTemplate"]?.GetValue<string>()
                        ?? line;
 
+            // Append the exception message (if any) so failures aren't opaque.
+            var exception = node["Exception"]?.GetValue<string>();
+            if (exception is not null)
+            {
+                // Show just the first line (the exception type + message),
+                // not the full stack trace, to keep the tray UI readable.
+                var firstLine = exception.AsSpan();
+                var newlineIdx = firstLine.IndexOfAny('\r', '\n');
+                if (newlineIdx >= 0)
+                    firstLine = firstLine[..newlineIdx];
+                message = $"{message} — {firstLine}";
+            }
+
             return new LogEntry(timestamp, level, message);
         }
         catch

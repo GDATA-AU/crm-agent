@@ -79,12 +79,16 @@ public sealed class StatusForm : Form
         var configBtn = new Button { Text = "Configure…", AutoSize = true };
         Theme.StyleSecondary(configBtn);
 
+        var openLogsBtn = new Button { Text = "Open Logs", AutoSize = true };
+        Theme.StyleSecondary(openLogsBtn);
+
         _startStopBtn.Click += OnStartStop;
         configBtn.Click += (_, _) =>
         {
             Close();
             ConfigureRequested?.Invoke();
         };
+        openLogsBtn.Click += OnOpenLogs;
 
         var btnRow = new FlowLayoutPanel
         {
@@ -95,6 +99,7 @@ public sealed class StatusForm : Form
         };
         btnRow.Controls.Add(_startStopBtn);
         btnRow.Controls.Add(configBtn);
+        btnRow.Controls.Add(openLogsBtn);
 
         // -- Activity feed --
         var activityLabel = new Label
@@ -294,6 +299,20 @@ public sealed class StatusForm : Form
             MessageBox.Show(ex.Message, "Service Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
         RefreshDisplay();
+    }
+
+    private static void OnOpenLogs(object? sender, EventArgs e)
+    {
+        var logDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "GDATA CRM Agent",
+            "logs");
+        Directory.CreateDirectory(logDir);
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = logDir,
+            UseShellExecute = true,
+        });
     }
 
     protected override void Dispose(bool disposing)
