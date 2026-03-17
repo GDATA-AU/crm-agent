@@ -74,7 +74,6 @@ public sealed class AgentWorker : BackgroundService
                 }, stoppingToken);
 
                 _logger.LogInformation("Ping job completed: {JobId}", job.Id);
-                await WaitAsync(stoppingToken);
                 continue;
             }
 

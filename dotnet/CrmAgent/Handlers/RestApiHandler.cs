@@ -30,7 +30,7 @@ public sealed partial class RestApiHandler : IJobHandler
         var token = await ResolveTokenAsync(config.Auth, ct);
 
         var timestamp = DateTime.UtcNow;
-        var blobName = BlobStorageService.BuildBlobName(job.BlobPath, timestamp);
+        var blobName = BlobStorageService.BuildBlobName(job.BlobPath!, timestamp);
 
         _logger.LogInformation("Starting REST API extraction for job {JobId} url={BaseUrl} blob={BlobName}",
             job.Id, config.BaseUrl, blobName);
@@ -42,10 +42,10 @@ public sealed partial class RestApiHandler : IJobHandler
         {
             processedRows = config.Pagination switch
             {
-                null => await FetchSinglePageAsync(config, token, job.HashFields, writer, ct),
-                { Type: PaginationType.LinkHeader } => await FetchWithLinkHeaderAsync(config, token, job.HashFields, writer, onProgress, ct),
-                { Type: PaginationType.Offset } => await FetchWithOffsetAsync(config, token, job.HashFields, writer, onProgress, ct),
-                { Type: PaginationType.Cursor } => await FetchWithCursorAsync(config, token, job.HashFields, writer, onProgress, ct),
+                null => await FetchSinglePageAsync(config, token, job.HashFields!, writer, ct),
+                { Type: PaginationType.LinkHeader } => await FetchWithLinkHeaderAsync(config, token, job.HashFields!, writer, onProgress, ct),
+                { Type: PaginationType.Offset } => await FetchWithOffsetAsync(config, token, job.HashFields!, writer, onProgress, ct),
+                { Type: PaginationType.Cursor } => await FetchWithCursorAsync(config, token, job.HashFields!, writer, onProgress, ct),
                 _ => throw new InvalidOperationException($"Unsupported pagination type: {config.Pagination.Type}"),
             };
         }

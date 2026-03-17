@@ -7,7 +7,7 @@ using Serilog;
 // Configure Serilog for structured JSON logging (matches the Node.js pino output)
 // ---------------------------------------------------------------------------
 Log.Logger = new LoggerConfiguration()
-    .WriteTo.Console(new Serilog.Formatting.Json.JsonFormatter())
+.WriteTo.Console(new Serilog.Formatting.Json.JsonFormatter(renderMessage: true))
     .CreateBootstrapLogger();
 
 try
@@ -31,9 +31,9 @@ try
     builder.Services.AddSerilog((services, cfg) => cfg
         .ReadFrom.Configuration(builder.Configuration)
         .ReadFrom.Services(services)
-        .WriteTo.Console(new Serilog.Formatting.Json.JsonFormatter())
+        .WriteTo.Console(new Serilog.Formatting.Json.JsonFormatter(renderMessage: true))
         .WriteTo.File(
-            new Serilog.Formatting.Json.JsonFormatter(),
+            new Serilog.Formatting.Json.JsonFormatter(renderMessage: true),
             Path.Combine(logDirectory, "agent.log"),
             rollingInterval: RollingInterval.Day,
             retainedFileCountLimit: 7,

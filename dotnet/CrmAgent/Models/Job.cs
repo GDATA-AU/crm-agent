@@ -154,8 +154,8 @@ public sealed class Job
     public required string Id { get; init; }
     public required JobType Type { get; init; }
     public required JobConfig Config { get; init; }
-    public required string BlobPath { get; init; }
-    public required string[] HashFields { get; init; }
+    public string? BlobPath { get; init; }
+    public string[]? HashFields { get; init; }
 }
 
 public sealed class PollResponse
