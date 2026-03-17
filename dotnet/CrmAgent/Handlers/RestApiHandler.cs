@@ -70,15 +70,16 @@ public sealed partial class RestApiHandler : IJobHandler
         return auth.Type switch
         {
             AuthType.Bearer => auth.Token,
-            AuthType.OAuth2ClientCredentials => await FetchOAuth2TokenAsync(auth, ct),
+            AuthType.OAuth2ClientCredentials => await FetchOAuth2ClientCredentialsTokenAsync(auth, ct),
+            AuthType.OAuth2Password => await FetchOAuth2PasswordTokenAsync(auth, ct),
             _ => null,
         };
     }
 
-    private async Task<string> FetchOAuth2TokenAsync(RestApiAuth auth, CancellationToken ct)
+    private async Task<string> FetchOAuth2ClientCredentialsTokenAsync(RestApiAuth auth, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(auth.TokenUrl) || string.IsNullOrEmpty(auth.ClientId) || string.IsNullOrEmpty(auth.ClientSecret))
-            throw new InvalidOperationException("OAuth2 auth requires tokenUrl, clientId, and clientSecret");
+            throw new InvalidOperationException("OAuth2 client-credentials auth requires tokenUrl, clientId, and clientSecret");
 
         using var http = _httpFactory.CreateClient();
         var form = new Dictionary<string, string>
@@ -90,7 +91,35 @@ public sealed partial class RestApiHandler : IJobHandler
         if (!string.IsNullOrEmpty(auth.Scope))
             form["scope"] = auth.Scope;
 
-        var response = await http.PostAsync(auth.TokenUrl, new FormUrlEncodedContent(form), ct);
+        return await PostTokenRequestAsync(http, auth.TokenUrl, form, ct);
+    }
+
+    private async Task<string> FetchOAuth2PasswordTokenAsync(RestApiAuth auth, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(auth.TokenUrl) || string.IsNullOrEmpty(auth.ClientId) || string.IsNullOrEmpty(auth.ClientSecret))
+            throw new InvalidOperationException("OAuth2 password auth requires tokenUrl, clientId, and clientSecret");
+        if (string.IsNullOrEmpty(auth.Username) || string.IsNullOrEmpty(auth.Password))
+            throw new InvalidOperationException("OAuth2 password auth requires username and password");
+
+        using var http = _httpFactory.CreateClient();
+        var form = new Dictionary<string, string>
+        {
+            ["grant_type"] = "password",
+            ["client_id"] = auth.ClientId,
+            ["client_secret"] = auth.ClientSecret,
+            ["username"] = auth.Username,
+            ["password"] = auth.Password,
+        };
+        if (!string.IsNullOrEmpty(auth.Scope))
+            form["scope"] = auth.Scope;
+
+        return await PostTokenRequestAsync(http, auth.TokenUrl, form, ct);
+    }
+
+    private static async Task<string> PostTokenRequestAsync(
+        HttpClient http, string tokenUrl, Dictionary<string, string> form, CancellationToken ct)
+    {
+        var response = await http.PostAsync(tokenUrl, new FormUrlEncodedContent(form), ct);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -121,6 +150,20 @@ public sealed partial class RestApiHandler : IJobHandler
             http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         return http;
+    }
+
+    /// <summary>
+    /// Build the effective base URL by appending any static query params from the config.
+    /// </summary>
+    private static string BuildBaseUrl(RestApiJobConfig config)
+    {
+        if (config.Params is null || config.Params.Count == 0)
+            return config.BaseUrl;
+
+        var separator = config.BaseUrl.Contains('?') ? "&" : "?";
+        var queryParams = string.Join("&", config.Params.Select(
+            kv => $"{Uri.EscapeDataString(kv.Key)}={Uri.EscapeDataString(kv.Value)}"));
+        return $"{config.BaseUrl}{separator}{queryParams}";
     }
 
     private static async Task<(JsonElement Body, HttpResponseHeaders Headers)> FetchPageAsync(
@@ -215,7 +258,8 @@ public sealed partial class RestApiHandler : IJobHandler
         NdjsonGzipWriter writer, CancellationToken ct)
     {
         using var http = CreateApiClient(config, token);
-        var (body, _) = await FetchPageAsync(http, config.BaseUrl, config.Method, ct);
+        var url = BuildBaseUrl(config);
+        var (body, _) = await FetchPageAsync(http, url, config.Method, ct);
         var records = GetRecords(body, null);
         return records.ValueKind == JsonValueKind.Array
             ? await WriteRecordsAsync(records, hashFields, writer)
@@ -228,7 +272,7 @@ public sealed partial class RestApiHandler : IJobHandler
     {
         using var http = CreateApiClient(config, token);
         var processedRows = 0;
-        string? nextUrl = config.BaseUrl;
+        string? nextUrl = BuildBaseUrl(config);
 
         while (nextUrl is not null)
         {
@@ -255,11 +299,12 @@ public sealed partial class RestApiHandler : IJobHandler
         var pageSizeParam = pagination.PageSizeParam ?? "pageSize";
         var processedRows = 0;
         var page = 0;
+        var baseUrl = BuildBaseUrl(config);
 
         while (true)
         {
-            var separator = config.BaseUrl.Contains('?') ? "&" : "?";
-            var url = $"{config.BaseUrl}{separator}{pageParam}={page}&{pageSizeParam}={pageSize}";
+            var separator = baseUrl.Contains('?') ? "&" : "?";
+            var url = $"{baseUrl}{separator}{pageParam}={page}&{pageSizeParam}={pageSize}";
             var (body, _) = await FetchPageAsync(http, url, config.Method, ct);
             var records = GetRecords(body, pagination.DataField);
 
@@ -290,11 +335,12 @@ public sealed partial class RestApiHandler : IJobHandler
         var pageParam = pagination.PageParam ?? "cursor";
         var processedRows = 0;
         string? cursor = null;
+        var baseUrl = BuildBaseUrl(config);
 
         while (true)
         {
-            var separator = config.BaseUrl.Contains('?') ? "&" : "?";
-            var url = $"{config.BaseUrl}{separator}{pageSizeParam}={pageSize}";
+            var separator = baseUrl.Contains('?') ? "&" : "?";
+            var url = $"{baseUrl}{separator}{pageSizeParam}={pageSize}";
             if (cursor is not null)
                 url += $"&{pageParam}={Uri.EscapeDataString(cursor)}";
 

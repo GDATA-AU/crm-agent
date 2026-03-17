@@ -53,6 +53,9 @@ public enum AuthType
 
     [JsonStringEnumMemberName("oauth2-client-credentials")]
     OAuth2ClientCredentials,
+
+    [JsonStringEnumMemberName("oauth2-password")]
+    OAuth2Password,
 }
 
 // ---------------------------------------------------------------------------
@@ -78,6 +81,8 @@ public sealed class RestApiAuth
     public string? ClientId { get; init; }
     public string? ClientSecret { get; init; }
     public string? Scope { get; init; }
+    public string? Username { get; init; }
+    public string? Password { get; init; }
 }
 
 public sealed class SqlJobConfig
@@ -96,6 +101,7 @@ public sealed class RestApiJobConfig
     public Dictionary<string, string>? Headers { get; init; }
     public RestApiAuth? Auth { get; init; }
     public RestApiPagination? Pagination { get; init; }
+    public Dictionary<string, string>? Params { get; init; }
     public required string BlobPath { get; init; }
     public required string[] HashFields { get; init; }
 }
@@ -119,6 +125,7 @@ public sealed class JobConfig
     public Dictionary<string, string>? Headers { get; init; }
     public RestApiAuth? Auth { get; init; }
     public RestApiPagination? Pagination { get; init; }
+    public Dictionary<string, string>? Params { get; init; }
 
     // Shared
     public string? BlobPath { get; init; }
@@ -140,6 +147,7 @@ public sealed class JobConfig
         Headers = Headers,
         Auth = Auth,
         Pagination = Pagination,
+        Params = Params,
         BlobPath = BlobPath ?? throw new InvalidOperationException("REST API job config missing 'blobPath'"),
         HashFields = HashFields ?? throw new InvalidOperationException("REST API job config missing 'hashFields'"),
     };
