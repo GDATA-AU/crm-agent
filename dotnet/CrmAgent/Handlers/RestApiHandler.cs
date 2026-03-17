@@ -140,6 +140,10 @@ public sealed partial class RestApiHandler : IJobHandler
     {
         var http = _httpFactory.CreateClient();
 
+        // Always request JSON — many APIs (e.g. CXone) return XML/text otherwise.
+        http.DefaultRequestHeaders.Accept.Add(
+            new MediaTypeWithQualityHeaderValue("application/json"));
+
         if (config.Headers is not null)
         {
             foreach (var (key, value) in config.Headers)
@@ -309,16 +313,16 @@ public sealed partial class RestApiHandler : IJobHandler
         using var http = CreateApiClient(config, token);
         var pagination = config.Pagination!;
         var pageSize = pagination.PageSize ?? 100;
-        var pageParam = pagination.PageParam ?? "page";
-        var pageSizeParam = pagination.PageSizeParam ?? "pageSize";
+        var pageParam = pagination.PageParam ?? "skip";
+        var pageSizeParam = pagination.PageSizeParam ?? "top";
         var processedRows = 0;
-        var page = 0;
+        var offset = 0;
         var baseUrl = BuildBaseUrl(config);
 
         while (true)
         {
             var separator = baseUrl.Contains('?') ? "&" : "?";
-            var url = $"{baseUrl}{separator}{pageParam}={page}&{pageSizeParam}={pageSize}";
+            var url = $"{baseUrl}{separator}{pageSizeParam}={pageSize}&{pageParam}={offset}";
             var (body, _) = await FetchPageAsync(http, url, config.Method, ct);
             var records = GetRecords(body, pagination.DataField);
 
@@ -331,7 +335,7 @@ public sealed partial class RestApiHandler : IJobHandler
             onProgress(new JobProgress { ProcessedRows = processedRows, Message = $"Processed {processedRows} records..." });
 
             if (count < pageSize) break;
-            page++;
+            offset += pageSize;
         }
 
         return processedRows;
