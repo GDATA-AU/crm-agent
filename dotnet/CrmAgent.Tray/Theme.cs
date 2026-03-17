@@ -32,11 +32,11 @@ internal static class Theme
     private static readonly string SansFamily =
         FontFamily.Families.Any(f => f.Name == "Segoe UI") ? "Segoe UI" : "Tahoma";
 
-    public static Font Heading   => new(SansFamily, 13f, FontStyle.Bold);
-    public static Font SubHead   => new(SansFamily, 10f, FontStyle.Bold);
-    public static Font Body      => new(SansFamily, 9.5f, FontStyle.Regular);
-    public static Font Small     => new(SansFamily, 8.5f, FontStyle.Regular);
-    public static Font Mono      => new("Consolas", 9f, FontStyle.Regular);
+    public static Font Heading   => new(SansFamily, 15f, FontStyle.Bold);
+    public static Font SubHead   => new(SansFamily, 10.5f, FontStyle.Bold);
+    public static Font Body      => new(SansFamily, 10f, FontStyle.Regular);
+    public static Font Small     => new(SansFamily, 9f, FontStyle.Regular);
+    public static Font Mono      => new("Consolas", 9.5f, FontStyle.Regular);
 
     // ── Button styling ───────────────────────────────────────────
 
@@ -48,7 +48,7 @@ internal static class Theme
         btn.ForeColor = Color.White;
         btn.Font = Body;
         btn.Cursor = Cursors.Hand;
-        btn.Padding = new Padding(12, 4, 12, 4);
+        btn.Padding = new Padding(14, 6, 14, 6);
         btn.FlatAppearance.BorderSize = 0;
         btn.FlatAppearance.MouseOverBackColor = AccentHover;
         btn.FlatAppearance.MouseDownBackColor = Accent;
@@ -62,7 +62,7 @@ internal static class Theme
         btn.ForeColor = TextSecondary;
         btn.Font = Body;
         btn.Cursor = Cursors.Hand;
-        btn.Padding = new Padding(12, 4, 12, 4);
+        btn.Padding = new Padding(14, 6, 14, 6);
         btn.FlatAppearance.BorderColor = Border;
         btn.FlatAppearance.BorderSize = 1;
         btn.FlatAppearance.MouseOverBackColor = SurfaceLight;

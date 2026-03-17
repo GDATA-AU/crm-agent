@@ -26,16 +26,16 @@ public sealed class StatusForm : Form
         Icon = TrayApplicationContext.LoadAppIcon();
         FormBorderStyle = FormBorderStyle.Sizable;
         StartPosition = FormStartPosition.CenterScreen;
-        MinimumSize = new Size(520, 440);
-        Size = new Size(600, 520);
+        MinimumSize = new Size(560, 480);
+        Size = new Size(680, 580);
         TopMost = true;
         Theme.ApplyToForm(this);
 
         // ── Status indicator row ──
         _statusDot = new Panel
         {
-            Size = new Size(12, 12),
-            Margin = new Padding(0, 6, 8, 0),
+            Size = new Size(14, 14),
+            Margin = new Padding(0, 8, 10, 0),
             BackColor = Theme.TextDim,
         };
         _statusDot.Paint += (_, e) =>
@@ -43,7 +43,7 @@ public sealed class StatusForm : Form
             e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
             using var brush = new SolidBrush(_statusDot.BackColor);
             e.Graphics.Clear(Theme.Surface);
-            e.Graphics.FillEllipse(brush, 0, 0, 11, 11);
+            e.Graphics.FillEllipse(brush, 0, 0, 13, 13);
         };
 
         _statusLabel = new Label
@@ -69,8 +69,8 @@ public sealed class StatusForm : Form
         {
             AutoSize = true,
             ForeColor = Theme.TextSecondary,
-            Font = Theme.Small,
-            Margin = new Padding(0, 2, 0, 0),
+            Font = Theme.Body,
+            Margin = new Padding(0, 6, 0, 0),
         };
 
         _startStopBtn = new Button { AutoSize = true };
@@ -94,7 +94,7 @@ public sealed class StatusForm : Form
         {
             AutoSize = true,
             WrapContents = false,
-            Margin = new Padding(0, 10, 0, 0),
+            Margin = new Padding(0, 14, 0, 0),
             BackColor = Theme.Surface,
         };
         btnRow.Controls.Add(_startStopBtn);
@@ -108,7 +108,7 @@ public sealed class StatusForm : Form
             AutoSize = true,
             Font = Theme.SubHead,
             ForeColor = Theme.TextSecondary,
-            Margin = new Padding(0, 14, 0, 6),
+            Margin = new Padding(0, 14, 0, 8),
         };
 
         _activityList = new ListBox
@@ -118,7 +118,7 @@ public sealed class StatusForm : Form
             IntegralHeight = false,
             SelectionMode = SelectionMode.None,
             DrawMode = DrawMode.OwnerDrawFixed,
-            ItemHeight = 24,
+            ItemHeight = 28,
             BackColor = Theme.LogBackground,
             ForeColor = Theme.LogText,
             Font = Theme.Mono,
@@ -131,7 +131,7 @@ public sealed class StatusForm : Form
             Dock = DockStyle.Top,
             AutoSize = true,
             BackColor = Theme.Surface,
-            Padding = new Padding(20, 16, 20, 16),
+            Padding = new Padding(24, 20, 24, 20),
         };
 
         var headerLayout = new FlowLayoutPanel
@@ -152,8 +152,8 @@ public sealed class StatusForm : Form
         var activityHeader = new Panel
         {
             Dock = DockStyle.Top,
-            Height = activityLabel.PreferredHeight + 20,
-            Padding = new Padding(20, 14, 20, 0),
+            Height = activityLabel.PreferredHeight + 26,
+            Padding = new Padding(24, 18, 24, 0),
             BackColor = Theme.Background,
         };
         activityHeader.Controls.Add(activityLabel);
@@ -162,7 +162,7 @@ public sealed class StatusForm : Form
         var activityPanel = new Panel
         {
             Dock = DockStyle.Fill,
-            Padding = new Padding(20, 0, 20, 16),
+            Padding = new Padding(24, 0, 24, 20),
             BackColor = Theme.Background,
         };
         activityPanel.Controls.Add(_activityList);
