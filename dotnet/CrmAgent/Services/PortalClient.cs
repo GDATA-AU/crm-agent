@@ -44,7 +44,10 @@ public sealed class PortalClient
                 $"Poll failed: {(int)response.StatusCode} {response.ReasonPhrase} — {body}");
         }
 
-        var envelope = await response.Content.ReadFromJsonAsync<PollResponse>(JsonOptions, ct);
+        var json = await response.Content.ReadAsStringAsync(ct);
+        _logger.LogDebug("Poll response: {Body}", json);
+
+        var envelope = JsonSerializer.Deserialize<PollResponse>(json, JsonOptions);
         return envelope?.Job;
     }
 
