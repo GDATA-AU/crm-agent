@@ -131,16 +131,16 @@ public sealed class JobConfig
     public string? BlobPath { get; init; }
     public string[]? HashFields { get; init; }
 
-    public SqlJobConfig ToSqlConfig() => new()
+    public SqlJobConfig ToSqlConfig(Job job) => new()
     {
         Server = Server ?? throw new InvalidOperationException("SQL job config missing 'server'"),
         Database = Database ?? throw new InvalidOperationException("SQL job config missing 'database'"),
         Query = Query ?? throw new InvalidOperationException("SQL job config missing 'query'"),
-        BlobPath = BlobPath ?? throw new InvalidOperationException("SQL job config missing 'blobPath'"),
-        HashFields = HashFields ?? throw new InvalidOperationException("SQL job config missing 'hashFields'"),
+        BlobPath = BlobPath ?? job.BlobPath ?? throw new InvalidOperationException("SQL job config missing 'blobPath'"),
+        HashFields = HashFields ?? job.HashFields ?? throw new InvalidOperationException("SQL job config missing 'hashFields'"),
     };
 
-    public RestApiJobConfig ToRestApiConfig() => new()
+    public RestApiJobConfig ToRestApiConfig(Job job) => new()
     {
         BaseUrl = BaseUrl ?? throw new InvalidOperationException("REST API job config missing 'baseUrl'"),
         Method = Method ?? "GET",
@@ -148,8 +148,8 @@ public sealed class JobConfig
         Auth = Auth,
         Pagination = Pagination,
         Params = Params,
-        BlobPath = BlobPath ?? throw new InvalidOperationException("REST API job config missing 'blobPath'"),
-        HashFields = HashFields ?? throw new InvalidOperationException("REST API job config missing 'hashFields'"),
+        BlobPath = BlobPath ?? job.BlobPath ?? throw new InvalidOperationException("REST API job config missing 'blobPath'"),
+        HashFields = HashFields ?? job.HashFields ?? throw new InvalidOperationException("REST API job config missing 'hashFields'"),
     };
 }
 

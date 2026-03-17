@@ -24,7 +24,7 @@ public sealed class SqlHandler : IJobHandler
 
     public async Task<HandlerResult> ExecuteAsync(Job job, Action<JobProgress> onProgress, CancellationToken ct)
     {
-        var config = job.Config.ToSqlConfig();
+        var config = job.Config.ToSqlConfig(job);
         var connectionString = BuildMssqlConnectionString(config);
 
         // Guard: reject queries that aren't SELECT statements.
@@ -37,7 +37,7 @@ public sealed class SqlHandler : IJobHandler
         }
 
         var timestamp = DateTime.UtcNow;
-        var blobName = BlobStorageService.BuildBlobName(job.BlobPath!, timestamp);
+        var blobName = BlobStorageService.BuildBlobName(config.BlobPath, timestamp);
 
         _logger.LogInformation("Starting SQL extraction for job {JobId} blob={BlobName}",
             job.Id, blobName);
@@ -47,7 +47,7 @@ public sealed class SqlHandler : IJobHandler
 
         await using (var writer = new NdjsonGzipWriter(memoryStream, leaveOpen: true))
         {
-            processedRows = await ExecuteMssqlAsync(connectionString, config.Query, job.HashFields!, writer, onProgress, ct);
+            processedRows = await ExecuteMssqlAsync(connectionString, config.Query, config.HashFields, writer, onProgress, ct);
         }
 
         // Upload the compressed NDJSON to blob storage.
