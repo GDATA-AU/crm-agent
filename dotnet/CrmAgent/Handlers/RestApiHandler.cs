@@ -172,16 +172,30 @@ public sealed partial class RestApiHandler : IJobHandler
         using var request = new HttpRequestMessage(new HttpMethod(method), url);
         var response = await http.SendAsync(request, ct);
 
+        var body = await response.Content.ReadAsStringAsync(ct);
+
         if (!response.IsSuccessStatusCode)
         {
-            var text = await response.Content.ReadAsStringAsync(ct);
             throw new HttpRequestException(
-                $"REST API request failed: {(int)response.StatusCode} {response.ReasonPhrase} — {text}");
+                $"REST API request failed: {(int)response.StatusCode} {response.ReasonPhrase} — {body}");
         }
 
-        using var doc = await JsonDocument.ParseAsync(
-            await response.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
-        return (doc.RootElement.Clone(), response.Headers);
+        JsonDocument doc;
+        try
+        {
+            doc = JsonDocument.Parse(body);
+        }
+        catch (JsonException ex)
+        {
+            var preview = body.Length > 500 ? body[..500] + "…" : body;
+            throw new InvalidOperationException(
+                $"REST API returned non-JSON response: {preview}", ex);
+        }
+
+        using (doc)
+        {
+            return (doc.RootElement.Clone(), response.Headers);
+        }
     }
 
     /// <summary>
