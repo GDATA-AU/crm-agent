@@ -61,6 +61,23 @@ public sealed class AgentWorker : BackgroundService
             }
 
             _logger.LogInformation("Job received: {JobId} type={JobType}", job.Id, job.Type);
+            _logger.LogInformation(
+                "Job config: {JobId} baseUrl={BaseUrl} method={Method} authType={AuthType} tokenUrl={TokenUrl} " +
+                "params={Params} paginationType={PaginationType} pageSize={PageSize} dataField={DataField} " +
+                "pageParam={PageParam} pageSizeParam={PageSizeParam} hashFields={HashFields} blobPath={BlobPath}",
+                job.Id,
+                job.Config.BaseUrl,
+                job.Config.Method,
+                job.Config.Auth?.Type,
+                job.Config.Auth?.TokenUrl,
+                job.Config.Params is not null ? string.Join(", ", job.Config.Params.Select(kv => $"{kv.Key}={kv.Value}")) : null,
+                job.Config.Pagination?.Type,
+                job.Config.Pagination?.PageSize,
+                job.Config.Pagination?.DataField,
+                job.Config.Pagination?.PageParam,
+                job.Config.Pagination?.PageSizeParam,
+                job.Config.HashFields,
+                job.Config.BlobPath);
 
             // Ping jobs are heartbeat checks from the portal. They are marked
             // completed immediately with no handler execution or blob output.
