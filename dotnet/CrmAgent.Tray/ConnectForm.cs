@@ -9,6 +9,9 @@ namespace CrmAgent.Tray;
 /// </summary>
 public sealed class ConnectForm : Form
 {
+    /// <summary>True when the user saved config and the service was started successfully.</summary>
+    public bool ServiceStarted { get; private set; }
+
     private readonly TextBox _urlBox;
     private readonly TextBox _apiKeyBox;
     private readonly TextBox _azureBox;
@@ -237,6 +240,7 @@ public sealed class ConnectForm : Form
         try
         {
             ServiceManager.Start();
+            ServiceStarted = true;
         }
         catch (Exception ex)
         {

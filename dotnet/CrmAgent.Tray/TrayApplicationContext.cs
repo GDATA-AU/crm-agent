@@ -93,7 +93,11 @@ public sealed class TrayApplicationContext : ApplicationContext
     private void OnTrayClick(object? sender, MouseEventArgs e)
     {
         if (e.Button != MouseButtons.Left) return;
+        ShowStatusForm();
+    }
 
+    private void ShowStatusForm()
+    {
         if (_statusForm is { Visible: true })
         {
             _statusForm.BringToFront();
@@ -118,9 +122,12 @@ public sealed class TrayApplicationContext : ApplicationContext
         _connectForm = new ConnectForm();
         _connectForm.FormClosed += (_, _) =>
         {
+            var started = _connectForm.ServiceStarted;
             _connectForm.Dispose();
             _connectForm = null;
             RefreshStatus();
+            if (started)
+                ShowStatusForm();
         };
         _connectForm.Show();
     }
