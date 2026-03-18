@@ -15,19 +15,29 @@ public sealed partial class RestApiHandler : IJobHandler
 {
     private readonly BlobStorageService _blob;
     private readonly IHttpClientFactory _httpFactory;
+    private readonly AgentConfig _agentConfig;
     private readonly ILogger<RestApiHandler> _logger;
 
-    public RestApiHandler(BlobStorageService blob, IHttpClientFactory httpFactory, ILogger<RestApiHandler> logger)
+    public RestApiHandler(BlobStorageService blob, IHttpClientFactory httpFactory, AgentConfig agentConfig, ILogger<RestApiHandler> logger)
     {
         _blob = blob;
         _httpFactory = httpFactory;
+        _agentConfig = agentConfig;
         _logger = logger;
     }
 
     public async Task<HandlerResult> ExecuteAsync(Job job, Action<JobProgress> onProgress, CancellationToken ct)
     {
         var config = job.Config.ToRestApiConfig(job);
-        var token = await ResolveTokenAsync(config.Auth, ct);
+
+        var auth = config.Auth;
+        if (auth?.Type == AuthType.Encrypted)
+        {
+            _logger.LogDebug("Decrypting encrypted auth block for job {JobId}", job.Id);
+            auth = AuthDecryptionService.Decrypt(auth, _agentConfig.AgentApiKey);
+        }
+
+        var token = await ResolveTokenAsync(auth, ct);
 
         var timestamp = DateTime.UtcNow;
         var blobName = BlobStorageService.BuildBlobName(config.BlobPath, timestamp);

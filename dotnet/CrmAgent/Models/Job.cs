@@ -56,6 +56,9 @@ public enum AuthType
 
     [JsonStringEnumMemberName("oauth2-password")]
     OAuth2Password,
+
+    [JsonStringEnumMemberName("encrypted")]
+    Encrypted,
 }
 
 // ---------------------------------------------------------------------------
@@ -83,6 +86,11 @@ public sealed class RestApiAuth
     public string? Scope { get; init; }
     public string? Username { get; init; }
     public string? Password { get; init; }
+
+    // Encrypted auth envelope fields
+    public string? Payload { get; init; }
+    public string? Iv { get; init; }
+    public string? AuthTag { get; init; }
 }
 
 public sealed class SqlJobConfig
