@@ -44,6 +44,14 @@ public sealed class PortalClient
                 $"Poll failed: {(int)response.StatusCode} {response.ReasonPhrase} — {body}");
         }
 
+        var contentType = response.Content.Headers.ContentType?.MediaType;
+        if (!string.Equals(contentType, "application/json", StringComparison.OrdinalIgnoreCase))
+        {
+            var body = await response.Content.ReadAsStringAsync(ct);
+            throw new HttpRequestException(
+                $"Poll returned unexpected content-type '{contentType}' (expected application/json). Body: {body}");
+        }
+
         var json = await response.Content.ReadAsStringAsync(ct);
         _logger.LogDebug("Poll response: {Body}", json);
 

@@ -48,16 +48,20 @@ try
 
     // Configuration — bind from appsettings.json "Agent" section, then overlay
     // environment variables for backwards compatibility.
+    // Empty strings in config are treated the same as missing (null) so that the
+    // placeholder values in appsettings.json don't shadow environment variables.
+    static string? NonEmpty(string? s) => string.IsNullOrEmpty(s) ? null : s;
+
     var agentConfig = new AgentConfig
     {
-        PortalUrl = (builder.Configuration["Agent:PortalUrl"]
-            ?? Environment.GetEnvironmentVariable("PORTAL_URL")
+        PortalUrl = (NonEmpty(builder.Configuration["Agent:PortalUrl"])
+            ?? NonEmpty(Environment.GetEnvironmentVariable("PORTAL_URL"))
             ?? throw new InvalidOperationException("Missing PORTAL_URL")).TrimEnd('/'),
-        AgentApiKey = builder.Configuration["Agent:AgentApiKey"]
-            ?? Environment.GetEnvironmentVariable("AGENT_API_KEY")
+        AgentApiKey = NonEmpty(builder.Configuration["Agent:AgentApiKey"])
+            ?? NonEmpty(Environment.GetEnvironmentVariable("AGENT_API_KEY"))
             ?? throw new InvalidOperationException("Missing AGENT_API_KEY"),
-        AzureStorageConnectionString = builder.Configuration["Agent:AzureStorageConnectionString"]
-            ?? Environment.GetEnvironmentVariable("AZURE_STORAGE_CONNECTION_STRING")
+        AzureStorageConnectionString = NonEmpty(builder.Configuration["Agent:AzureStorageConnectionString"])
+            ?? NonEmpty(Environment.GetEnvironmentVariable("AZURE_STORAGE_CONNECTION_STRING"))
             ?? throw new InvalidOperationException("Missing AZURE_STORAGE_CONNECTION_STRING"),
         PollIntervalMs = int.TryParse(
             builder.Configuration["Agent:PollIntervalMs"] ?? Environment.GetEnvironmentVariable("POLL_INTERVAL_MS"),
