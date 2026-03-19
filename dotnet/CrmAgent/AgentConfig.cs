@@ -10,7 +10,7 @@ public sealed class AgentConfig
     public required string PortalUrl { get; init; }
     public required string AgentApiKey { get; init; }
     public required string AzureStorageConnectionString { get; init; }
-    public int PollIntervalMs { get; init; } = 30_000;
+    public int PollIntervalMs { get; init; } = 5_000;
     public int HeartbeatIntervalMs { get; init; } = 30_000;
     public string LogLevel { get; init; } = "Information";
 }
