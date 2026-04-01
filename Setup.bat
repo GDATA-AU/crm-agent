@@ -56,3 +56,4 @@ echo.
 echo Launching configuration wizard...
 start "" "%TRAY_EXE%"
 exit /b 0
+
