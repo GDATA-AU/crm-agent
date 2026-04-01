@@ -9,9 +9,11 @@ on:
       - 'dotnet/**'
       - 'installer/**'
       - '.github/workflows/windows-msi.yml'
+    tags:
+      - 'v*'
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -38,20 +40,25 @@ jobs:
       - name: Run tests
         run: dotnet test dotnet/CrmAgent.Tests/CrmAgent.Tests.csproj -c Release --no-build --verbosity normal
 
-      - name: Publish service binaries
-        run: dotnet publish dotnet/CrmAgent/CrmAgent.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
-
-      - name: Publish tray binaries
-        run: dotnet publish dotnet/CrmAgent.Tray/CrmAgent.Tray.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish-tray
-
       - name: Compute version
         id: version
         shell: pwsh
         run: |
-          # 1.0.<run_number> gives a unique, always-incrementing version per build
-          $ver = "1.0.${{ github.run_number }}"
+          if ("${{ github.ref_type }}" -eq "tag") {
+            # Tag trigger: strip leading 'v' from tag name (e.g. v1.0.42 → 1.0.42)
+            $ver = "${{ github.ref_name }}" -replace '^v',''
+          } else {
+            # Branch trigger: 1.0.<run_number>
+            $ver = "1.0.${{ github.run_number }}"
+          }
           "version=$ver" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           Write-Host "Package version: $ver"
+
+      - name: Publish service binaries
+        run: dotnet publish dotnet/CrmAgent/CrmAgent.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=${{ steps.version.outputs.version }} -o publish
+
+      - name: Publish tray binaries
+        run: dotnet publish dotnet/CrmAgent.Tray/CrmAgent.Tray.csproj -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:Version=${{ steps.version.outputs.version }} -o publish-tray
 
       - name: Build MSI
         run: dotnet build installer/msi/CrmAgent.Installer.wixproj -c Release -p:PackageVersion=${{ steps.version.outputs.version }}
@@ -85,3 +92,15 @@ jobs:
           name: gdata-crm-agent-msi
           path: installer/msi-artifact/**
           if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $msi = Get-ChildItem -Path installer/msi-artifact -Filter *.msi | Select-Object -First 1
+          gh release create $tag $msi.FullName `
+            --title "GDATA CRM Agent $tag" `
+            --generate-notes

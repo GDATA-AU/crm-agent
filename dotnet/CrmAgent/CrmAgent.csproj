@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Version>1.0.0</Version>
     <UserSecretsId>dotnet-CrmAgent-8dc76f96-7a7e-4a7f-a477-1d15019fbd05</UserSecretsId>
     <ApplicationIcon>app.ico</ApplicationIcon>
   </PropertyGroup>

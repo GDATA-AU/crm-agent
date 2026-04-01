@@ -13,6 +13,8 @@ public sealed class TrayApplicationContext : ApplicationContext
 
     private readonly NotifyIcon _notifyIcon;
     private readonly ToolStripMenuItem _statusMenuItem;
+    private readonly ToolStripMenuItem _updateMenuItem;
+    private readonly UpdateService _updateService;
     private readonly System.Windows.Forms.Timer _pollTimer;
     private StatusForm? _statusForm;
     private ConnectForm? _connectForm;
@@ -20,6 +22,7 @@ public sealed class TrayApplicationContext : ApplicationContext
     public TrayApplicationContext()
     {
         _statusMenuItem = new ToolStripMenuItem("Checking status…") { Enabled = false };
+        _updateMenuItem = new ToolStripMenuItem("Check for Updates…", null, async (_, _) => await CheckForUpdateManual());
 
         var headerItem = new ToolStripMenuItem("GDATA CRM Agent")
         {
@@ -40,6 +43,7 @@ public sealed class TrayApplicationContext : ApplicationContext
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Configure…", null, (_, _) => ShowConnectForm());
         menu.Items.Add("Open Log Folder", null, (_, _) => OpenLogFolder());
+        menu.Items.Add(_updateMenuItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Uninstall…", null, (_, _) => ConfirmAndUninstall());
         menu.Items.Add(new ToolStripSeparator());
@@ -60,6 +64,61 @@ public sealed class TrayApplicationContext : ApplicationContext
 
         // Defer first-run check until after the message loop starts
         Application.Idle += OnFirstIdle;
+
+        // Start background update checker
+        _updateService = new UpdateService();
+        _updateService.UpdateReady += OnUpdateReady;
+        _updateService.Start();
+    }
+
+    private void OnUpdateReady(string version, string msiPath)
+    {
+        _updateMenuItem.Text = $"Update to {version}";
+        _updateMenuItem.Font = new Font(_updateMenuItem.Font, FontStyle.Bold);
+        _updateMenuItem.Click -= OnApplyUpdate;
+        _updateMenuItem.Click += OnApplyUpdate;
+        _notifyIcon.BalloonTipTitle = "Update Available";
+        _notifyIcon.BalloonTipText = $"GDATA CRM Agent {version} is ready to install.";
+        _notifyIcon.ShowBalloonTip(5_000);
+        // Notify the StatusForm if it's open
+        _statusForm?.SetUpdateAvailable(version);
+    }
+
+    private void OnApplyUpdate(object? sender, EventArgs e)
+    {
+        _updateService.ApplyUpdate();
+    }
+
+    private async Task CheckForUpdateManual()
+    {
+        _updateMenuItem.Text = "Checking…";
+        _updateMenuItem.Enabled = false;
+        try
+        {
+            await _updateService.CheckNowAsync();
+            // If no update was found (UpdateReady didn't fire), reset text
+            if (_updateService.AvailableVersion is null)
+            {
+                _updateMenuItem.Text = "No Updates Available";
+                // Reset back to normal after a few seconds
+                var resetTimer = new System.Windows.Forms.Timer { Interval = 3_000 };
+                resetTimer.Tick += (_, _) =>
+                {
+                    _updateMenuItem.Text = "Check for Updates…";
+                    resetTimer.Stop();
+                    resetTimer.Dispose();
+                };
+                resetTimer.Start();
+            }
+        }
+        catch
+        {
+            _updateMenuItem.Text = "Update Check Failed";
+        }
+        finally
+        {
+            _updateMenuItem.Enabled = true;
+        }
     }
 
     private void OnFirstIdle(object? sender, EventArgs e)
@@ -77,11 +136,11 @@ public sealed class TrayApplicationContext : ApplicationContext
             var status = ServiceManager.GetStatus();
             var (text, tip) = status switch
             {
-                ServiceControllerStatus.Running      => ("● Running",   "GDATA CRM Agent | Running"),
-                ServiceControllerStatus.Stopped      => ("○ Stopped",   "GDATA CRM Agent | Stopped"),
+                ServiceControllerStatus.Running => ("● Running", "GDATA CRM Agent | Running"),
+                ServiceControllerStatus.Stopped => ("○ Stopped", "GDATA CRM Agent | Stopped"),
                 ServiceControllerStatus.StartPending => ("◌ Starting…", "GDATA CRM Agent | Starting"),
-                ServiceControllerStatus.StopPending  => ("◌ Stopping…", "GDATA CRM Agent | Stopping"),
-                _                                    => ("? Unknown",   "GDATA CRM Agent | Unknown"),
+                ServiceControllerStatus.StopPending => ("◌ Stopping…", "GDATA CRM Agent | Stopping"),
+                _ => ("? Unknown", "GDATA CRM Agent | Unknown"),
             };
             _statusMenuItem.Text = text;
             // NotifyIcon.Text is capped at 63 characters
@@ -104,7 +163,7 @@ public sealed class TrayApplicationContext : ApplicationContext
             return;
         }
 
-        _statusForm = new StatusForm();
+        _statusForm = new StatusForm(_updateService);
         _statusForm.FormClosed += (_, _) => _statusForm = null;
         _statusForm.ConfigureRequested += ShowConnectForm;
         _statusForm.Show();
@@ -199,6 +258,7 @@ public sealed class TrayApplicationContext : ApplicationContext
     {
         if (disposing)
         {
+            _updateService.Dispose();
             _pollTimer.Dispose();
             _notifyIcon.Dispose();
         }

@@ -15,13 +15,17 @@ public sealed class StatusForm : Form
     private readonly Label _statusLabel;
     private readonly Panel _statusDot;
     private readonly Label _portalLabel;
+    private readonly Label _versionLabel;
     private readonly Button _startStopBtn;
+    private readonly Button _updateBtn;
     private readonly ListBox _activityList;
     private readonly System.Windows.Forms.Timer _refreshTimer;
     private readonly LogTailer _logTailer = new();
+    private readonly UpdateService _updateService;
 
-    public StatusForm()
+    public StatusForm(UpdateService updateService)
     {
+        _updateService = updateService;
         Text = "GDATA CRM Agent";
         Icon = TrayApplicationContext.LoadAppIcon();
         FormBorderStyle = FormBorderStyle.Sizable;
@@ -73,6 +77,15 @@ public sealed class StatusForm : Form
             Margin = new Padding(0, 6, 0, 0),
         };
 
+        _versionLabel = new Label
+        {
+            AutoSize = true,
+            ForeColor = Theme.TextDim,
+            Font = Theme.Body,
+            Text = $"Version: {UpdateService.CurrentVersion}",
+            Margin = new Padding(0, 2, 0, 0),
+        };
+
         _startStopBtn = new Button { AutoSize = true };
         Theme.StylePrimary(_startStopBtn);
 
@@ -82,6 +95,14 @@ public sealed class StatusForm : Form
         var openLogsBtn = new Button { Text = "Open Logs", AutoSize = true };
         Theme.StyleSecondary(openLogsBtn);
 
+        _updateBtn = new Button { Text = "Check for Updates", AutoSize = true };
+        Theme.StyleSecondary(_updateBtn);
+        if (_updateService.AvailableVersion is not null)
+        {
+            _updateBtn.Text = $"Update to {_updateService.AvailableVersion}";
+            Theme.StylePrimary(_updateBtn);
+        }
+
         _startStopBtn.Click += OnStartStop;
         configBtn.Click += (_, _) =>
         {
@@ -89,6 +110,7 @@ public sealed class StatusForm : Form
             ConfigureRequested?.Invoke();
         };
         openLogsBtn.Click += OnOpenLogs;
+        _updateBtn.Click += OnUpdateClick;
 
         var btnRow = new FlowLayoutPanel
         {
@@ -100,6 +122,7 @@ public sealed class StatusForm : Form
         btnRow.Controls.Add(_startStopBtn);
         btnRow.Controls.Add(configBtn);
         btnRow.Controls.Add(openLogsBtn);
+        btnRow.Controls.Add(_updateBtn);
 
         // -- Activity feed --
         var activityLabel = new Label
@@ -145,6 +168,7 @@ public sealed class StatusForm : Form
         };
         headerLayout.Controls.Add(statusRow);
         headerLayout.Controls.Add(_portalLabel);
+        headerLayout.Controls.Add(_versionLabel);
         headerLayout.Controls.Add(btnRow);
         headerCard.Controls.Add(headerLayout);
 
@@ -190,11 +214,11 @@ public sealed class StatusForm : Form
 
         var (text, color) = status switch
         {
-            ServiceControllerStatus.Running      => ("Running",    Theme.Success),
-            ServiceControllerStatus.Stopped      => ("Stopped",    Theme.Error),
-            ServiceControllerStatus.StartPending => ("Starting…",  Theme.Warning),
-            ServiceControllerStatus.StopPending  => ("Stopping…",  Theme.Warning),
-            _                                    => ("Unknown",    Theme.TextDim),
+            ServiceControllerStatus.Running => ("Running", Theme.Success),
+            ServiceControllerStatus.Stopped => ("Stopped", Theme.Error),
+            ServiceControllerStatus.StartPending => ("Starting…", Theme.Warning),
+            ServiceControllerStatus.StopPending => ("Stopping…", Theme.Warning),
+            _ => ("Unknown", Theme.TextDim),
         };
         _statusLabel.Text = text;
         _statusLabel.ForeColor = color;
@@ -313,6 +337,58 @@ public sealed class StatusForm : Form
             FileName = logDir,
             UseShellExecute = true,
         });
+    }
+
+    private async void OnUpdateClick(object? sender, EventArgs e)
+    {
+        if (_updateService.AvailableVersion is not null)
+        {
+            _updateService.ApplyUpdate();
+            return;
+        }
+
+        _updateBtn.Text = "Checking…";
+        _updateBtn.Enabled = false;
+        try
+        {
+            await _updateService.CheckNowAsync();
+            if (_updateService.AvailableVersion is not null)
+            {
+                SetUpdateAvailable(_updateService.AvailableVersion);
+            }
+            else
+            {
+                _updateBtn.Text = "Up to Date";
+                var resetTimer = new System.Windows.Forms.Timer { Interval = 3_000 };
+                resetTimer.Tick += (_, _) =>
+                {
+                    _updateBtn.Text = "Check for Updates";
+                    resetTimer.Stop();
+                    resetTimer.Dispose();
+                };
+                resetTimer.Start();
+            }
+        }
+        catch
+        {
+            _updateBtn.Text = "Check Failed";
+        }
+        finally
+        {
+            _updateBtn.Enabled = true;
+        }
+    }
+
+    /// <summary>Called by TrayApplicationContext when UpdateService fires UpdateReady.</summary>
+    internal void SetUpdateAvailable(string version)
+    {
+        if (InvokeRequired)
+        {
+            Invoke(() => SetUpdateAvailable(version));
+            return;
+        }
+        _updateBtn.Text = $"Update to {version}";
+        Theme.StylePrimary(_updateBtn);
     }
 
     protected override void Dispose(bool disposing)

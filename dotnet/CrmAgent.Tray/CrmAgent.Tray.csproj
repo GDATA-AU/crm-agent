@@ -6,6 +6,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <Version>1.0.0</Version>
     <AssemblyName>CrmAgentTray</AssemblyName>
     <RootNamespace>CrmAgent.Tray</RootNamespace>
     <ApplicationIcon>app.ico</ApplicationIcon>
