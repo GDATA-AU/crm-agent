@@ -77,6 +77,7 @@ public sealed class SqlHandler : IJobHandler
             DataSource = config.Server,
             InitialCatalog = config.Database,
             IntegratedSecurity = true,
+            TrustServerCertificate = true,
         };
         return builder.ConnectionString;
     }
